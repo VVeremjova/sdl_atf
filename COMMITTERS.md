@@ -40,7 +40,7 @@ set in the form of a pull request.
 * Add reviewers
 
 ##Run all tests
-* Run in root build directory `./run_tests.sh`
+* Run in root build directory `make test`
 
 ##Branch naming
 Branch name should be:

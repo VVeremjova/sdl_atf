@@ -116,4 +116,4 @@ TCPAdapterPort = 12345
 ```
 
 ## Run tests
-``` ./run_tests.sh```
+``` make test```
