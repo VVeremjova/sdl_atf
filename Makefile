@@ -26,9 +26,11 @@ modules/libxml.so: lua_xml.cc
 
 clean:
 	rm -f $(PROJECT).mk
-	rm -f	*.o moc_*.cpp *.aux *.log
-	rm -f test/out/*.out
+	rm -f *.o moc_*.cpp *.aux *.log *.so *.a
+	rm -f modules/*.so modules/*.o
 	-make -C test clean
+	rm -f test/*.so* test/*.o test/Makefile 
+	rm -f test/out/*.out
 
 distclean: clean
 	rm -f	interp libqttest.so
