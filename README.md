@@ -12,10 +12,8 @@ lua-stdlib         | MIT
 Qt5.3 WebSockets   | LGPL 2.1
 Qt5.3 Network      | LGPL 2.1
 Qt5.3 Core         | LGPL 2.1
-Qt5.3 Gui          | LGPL 2.1
 Qt5.3 Test         | LGPL 2.1
-**Other libs**     | 
-lGL                | Mesa(MIT)
+**Other libs**     |
 lpthread           | LGPL
 libxml2            | MIT
 
