@@ -14,9 +14,9 @@ set in the form of a pull request.
 
 **reviewer** - A person responsible for reviewing a pull request.
 
-**master branch** - [The base branch](https://github.com/smartdevicelink/sdl_core/tree/master).
+**master branch** - [The base branch](https://github.com/CustomSDL/sdl_atf/tree/master).
 
-**develop branch** - [The branch](https://github.com/LuxoftSDL/sdl_core/tree/develop) where bug fixes against the latest release or release candidate are merged.
+**develop branch** - [The branch](https://github.com/CustomSDL/sdl_atf/tree/develop) where bug fixes against the latest release or release candidate are merged.
 
 ##Pull request checklist
 * Add Unit tests.

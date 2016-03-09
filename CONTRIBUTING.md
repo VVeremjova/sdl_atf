@@ -30,6 +30,6 @@ In order to accept Pull Requests from contributors, you must first sign [the Con
 * [General GitHub documentation](https://help.github.com/)
 * [GitHub pull request documentation](https://help.github.com/send-pull-requests/)
 * [Contributor's License Agreement](https://docs.google.com/forms/d/1VNR8EUd5b46cQ7uNbCq1fJmnu0askNpUp5dudLKRGpU/viewform)
-* [Committers.md](https://github.com/CustomSDL/sdl_atf/blob/feature/Add_Committers_file/COMMITTERS.md)
+* [Committers.md](https://github.com/CustomSDL/sdl_atf/blob/master/COMMITTERS.md)
 
 
