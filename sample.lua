@@ -1,392 +1,496 @@
 Test = require('connecttest')
 require('cardinalities')
+local hmi_connection = require('hmi_connection')
+local websocket      = require('websocket_connection')
+local module         = require('testbase')
 local events = require('events')
 local mobile_session = require('mobile_session')
+local mobile  = require('mobile_connection')
+local tcp = require('tcp_connection')
+local file_connection  = require('file_connection')
 local config = require('config')
 
-function Test:WaitActivation()
-  description('Waiting for notification')
-  critical(true)
-  EXPECT_NOTIFICATION("OnHMIStatus")
-  local rid = self.hmiConnection:SendRequest("SDL.ActivateApp", { appID = self.applications["Test Application"]})
-  EXPECT_HMIRESPONSE(rid)
-end
 
-function Test:DelayedExp()
+function DelayedExp(time)
   local event = events.Event()
   event.matches = function(self, e) return self == e end
   EXPECT_EVENT(event, "Delayed event")
-  :Timeout(2000)
+  :Timeout(time+1000)
   RUN_AFTER(function()
-      RAISE_EVENT(event, event)
-      end, 1500)
-  end
+              RAISE_EVENT(event, event)
+            end, time)
+end
 
-  function Test:Case_GetVehicleDataTest()
-    local CorIdSubscribeVD= self.mobileSession:SendRPC("GetVehicleData",
-      {
-        gps = true,
-        speed = true
-      })
+local function SendOnSystemContext(self, ctx)
+  self.hmiConnection:SendNotification("UI.OnSystemContext",{ appID = self.applications[config.application1.registerAppInterfaceParams.appName], systemContext = ctx })
+end
 
-    EXPECT_HMICALL("VehicleInfo.GetVehicleData",
-      {
-        gps = true,
-        speed = true
-      })
-    :Do(function(_,data)
-        self.hmiConnection:SendResponse(data.id, "VehicleInfo.GetVehicleData", "SUCCESS",{gps = {longitudeDegrees = 20.1, latitudeDegrees = -11.9, dimension = "2D"}, speed = 120.10})
-      end)
 
-    self.mobileSession:ExpectResponse(CorIdSubscribeVD, { success = true, resultCode = "SUCCESS",gps = {longitudeDegrees = 20.1, latitudeDegrees = -11.9, dimension = "2D"}, speed = 120.1})
-    :Timeout(5000)
-  end
+function Test:ActivationApp()
 
-  function Test:GetVehicleData()
-    EXPECT_HMICALL("VehicleInfo.GetVehicleData")
-    :Do(function(_, data)
-        self.hmiConnection:SendResponse(data.id, data.method, "SUCCESS", { method = "VehicleInfo.GetVehicleData", speed = 1.2 })
-      end)
-    local cid = self.mobileSession:SendRPC("GetVehicleData", { speed = true })
-    EXPECT_RESPONSE("GetVehicleData", { success = true, speed = 1.2 })
-  end
+    --hmi side: sending SDL.ActivateApp request
+      local RequestId = self.hmiConnection:SendRequest("SDL.ActivateApp", { appID = self.applications[config.application1.registerAppInterfaceParams.appName]})
 
-  function Test:PutFile()
-    local cid = self.mobileSession:SendRPC("PutFile",
-      {
-        syncFileName = "icon.png",
-        fileType = "GRAPHIC_PNG"
-      }, "icon.png")
-    EXPECT_RESPONSE(cid, { success = true })
-  end
+      --hmi side: expect SDL.ActivateApp response
+    EXPECT_HMIRESPONSE(RequestId)
+      :Do(function(_,data)
+        --In case when app is not allowed, it is needed to allow app
+          if
+              data.result.isSDLAllowed ~= true then
 
-  --[[ Disabled until APPLINK-12709 is fixed
+                --hmi side: sending SDL.GetUserFriendlyMessage request
+                  local RequestId = self.hmiConnection:SendRequest("SDL.GetUserFriendlyMessage", 
+                          {language = "EN-US", messageCodes = {"DataConsent"}})
 
-  function Test:Case_StartAudioStreaming()
-    self.mobileSession:StartService(10)
-    :Do(function()
-        self.mobileSession:StartStreaming(10, "video.mpg", 30 * 1024)
-      end)
-  end
+                  --hmi side: expect SDL.GetUserFriendlyMessage response
+                EXPECT_HMIRESPONSE(RequestId)
+                      :Do(function(_,data)
 
-  function Test:StopAudioStreaming()
-    local function to_be_run()
-      self.mobileSession:StopStreaming("video.mpg")
-      self.mobileSession:Send(
-        {
-          frameType = 0,
-          serviceType = 10,
-          frameInfo = 4,
-          sessionId = self.mobileSession.sessionId
-        })
-    end
-    RUN_AFTER(to_be_run, 12000)
-    local event = events.Event()
-    event.matches = function(_, data)
-      return data.frameType == 0 and
-      data.serviceType == 10 and
-      data.sessionId == self.mobileSession.sessionId and
-      (data.frameInfo == 5 or -- End Service ACK
-        data.frameInfo == 6) -- End Service NACK
-    end
-    self.mobileSession:ExpectEvent(event, "EndService ACK")
-    :Timeout(15000)
-    :ValidIf(function(s, data)
-        if data.frameInfo == 5 then return true
-        else return false, "EndService NACK received" end
-      end)
+                    --hmi side: send request SDL.OnAllowSDLFunctionality
+                    self.hmiConnection:SendNotification("SDL.OnAllowSDLFunctionality", 
+                      {allowed = true, source = "GUI", device = {id = "12ca17b49af2289436f303e0166030a21e525d266e209267433801a8fd4071a0", name = "127.0.0.1"}})
 
-  end
-  --]]
+                    --hmi side: expect BasicCommunication.ActivateApp request
+                      EXPECT_HMICALL("BasicCommunication.ActivateApp")
+                        :Do(function(_,data)
 
-  function Test:Case_PerformAudioPassThruTest()
-    local CorIdPAPT = self.mobileSession:SendRPC("PerformAudioPassThru",
-      {
-        audioPassThruDisplayText1 = "audioPassThruDisplayText1",
-        samplingRate = "16KHZ",
-        maxDuration = 10000,
-        bitsPerSample = "16_BIT",
-        audioType = "PCM"
-      })
+                          --hmi side: sending BasicCommunication.ActivateApp response
+                          self.hmiConnection:SendResponse(data.id,"BasicCommunication.ActivateApp", "SUCCESS", {})
 
-    local UIPAPTid
-    EXPECT_HMICALL("UI.PerformAudioPassThru")
-    :Do(function(_,data)
-        UIPAPTid = data.id
-        local function to_be_run()
-          self.hmiConnection:SendResponse(UIPAPTid, "UI.PerformAudioPassThru", "SUCCESS", { })
+                      end)
+
+                      end)
+
         end
-        RUN_AFTER(to_be_run, 2000)
+          end)
+
+    --mobile side: expect OnHMIStatus notification
+      EXPECT_NOTIFICATION("OnHMIStatus", {hmiLevel = "FULL"}) 
+
+  end
+
+  --//////////////////////////////////////////////////////////////////////////////////--
+--Precondition for Case_PerformInteractionTest execution
+ function Test:Precondition_ForPITesrCreateInteractionChoiceSet()
+	local CorIdChoice = self.mobileSession:SendRPC("CreateInteractionChoiceSet",
+  {
+    interactionChoiceSetID = 1,
+    choiceSet = 
+    {
+    	{
+			choiceID = 1,
+			menuName = "Choice 1",
+			vrCommands = {"Choice1"}
+
+    	}
+	 }
+  })
+
+
+  EXPECT_HMICALL("VR.AddCommand", 
+  {
+    cmdID = 1,
+    vrCommands ={"Choice1"},
+    type = "Choice"
+  })
+  :Do(function(_,data)
+    self.hmiConnection:SendResponse(data.id, "VR.AddCommand", "SUCCESS", {})
       end)
 
-    EXPECT_NOTIFICATION("OnAudioPassThru")
-    :Times(AnyNumber())
+  EXPECT_RESPONSE("CreateInteractionChoiceSet", { success = true, resultCode = "SUCCESS" })
+  :Timeout(2000)
+
+end
+
+--//////////////////////////////////////////////////////////////////////////////////--
+-- 2.Check processing messages on UI interface
+function Test:Case_ShowTest()
+	local CorIdShow = self.mobileSession:SendRPC("Show",
+  {
+    mainField1 = "Show main Field 1",
+    mainField2 = "Show main Field 2",
+    mainField3 = "Show main Field 3",
+    mediaClock = "12:04"
+  })
+
+  EXPECT_HMICALL("UI.Show", 
+  {
+    showStrings = 
+    {
+    	{ fieldName = "mainField1",  fieldText = "Show main Field 1"},
+    	{ fieldName = "mainField2",  fieldText = "Show main Field 2"},
+    	{ fieldName = "mainField3",  fieldText = "Show main Field 3"},
+    	{ fieldName = "mediaClock",  fieldText = "12:04"}
+	},
+
+  })
+  :Do(function(_,data)
+    self.hmiConnection:SendResponse(data.id,"UI.Show", "SUCCESS", {})
+      end)
+
+  EXPECT_RESPONSE(CorIdShow, { success = true, resultCode = "SUCCESS", info = nil })
+  :Timeout(2000)
+
+end
+
+--//////////////////////////////////////////////////////////////////////////////////--
+-- 3.Check processing messages on TTS interface, EXPECT_ANY function
+function Test:Case_SpeakTest()
+
+  local TTSSpeakRequestId
+  EXPECT_HMICALL("TTS.Speak",
+    {
+      speakType = "SPEAK",
+      ttsChunks = { { text = "ttsChunks", type = "TEXT" } }
+    })
+    :DoOnce(function(_, data)
+          TTSSpeakRequestId = data.id
+          self.hmiConnection:SendNotification("TTS.Started",{ })
+        end)
+
+  EXPECT_NOTIFICATION("OnHMIStatus",
+    { systemContext = "MAIN", hmiLevel = "FULL", audioStreamingState = "ATTENUATED" },
+    { systemContext = "MAIN",  hmiLevel = "FULL", audioStreamingState = "AUDIBLE"    })
+    :Times(2)
     :Do(function(exp, data)
-        if exp.occurences == 5 then
-          self.hmiConnection:Send({
-              id = UIPAPTid,
-              jsonrpc = "2.0",
-              result = { method = "UI.PerformInteraction", code = 0 }
-            })
-        end
-      end)
+          if exp.occurences == 1 then
+            self.hmiConnection:SendResponse(TTSSpeakRequestId,"TTS.Speak", "SUCCESS", {})
+            self.hmiConnection:SendNotification("TTS.Stopped",{ })
+          end
+        end)
 
-    EXPECT_RESPONSE(CorIdPAPT, { success = true, resultCode = "SUCCESS" })
-    :Timeout(15000)
-  end
+  local SpeakCId = self.mobileSession:SendRPC("Speak",
+  {
+    ttsChunks = { { text = "ttsChunks", type = "TEXT"} }
+  })
 
-  function Test:sendOnSystemContext(ctx)
-    self.hmiConnection:SendNotification("UI.OnSystemContext", { appID = self.applications["Test Application"], systemContext = ctx })
-  end
+  EXPECT_ANY()
+  :ValidIf(function(_, data)
+       if data.payload.success == true and
+        data.payload.resultCode == "SUCCESS" then
+        print (" \27[32m  Message with expected data came \27[0m")
+        return true
+      else
+         print (" \27[36m Some wrong message came"..tostring(data.rpcFunctionId)..", expected 12 \27[0m ")
+         return false
+      end
+    end)
 
-  function Test:Case_TTSSpeakTest()
-    local AlertRequestId
-    EXPECT_HMICALL("UI.Alert",
+end
+
+--//////////////////////////////////////////////////////////////////////////////////--
+-- 4.Check processing messages on TTS, UI interfaces
+function Test:Case_AlertTest()
+  local AlertRequestId
+  EXPECT_HMICALL("UI.Alert", 
+  {
+    softButtons = 
+    {
       {
-        softButtons =
-        {
-          {
-            text = "Button",
-            isHighlighted = false,
-            softButtonID = 1122,
-            systemAction = "DEFAULT_ACTION"
-          }
-        }
-      })
-    :Do(function(_,data)
+        text = "Button",
+        isHighlighted = false,
+        softButtonID = 1122,
+        systemAction = "DEFAULT_ACTION"
+      }
+    }
+  })
+  :Do(function(_,data)
         AlertRequestId = data.id
-        self:sendOnSystemContext("ALERT")
+        SendOnSystemContext(self, "ALERT")
       end)
 
-    local TTSSpeakRequestId
-    EXPECT_HMICALL("TTS.Speak",
-      {
-        speakType = "ALERT",
-        ttsChunks = { { text = "ttsChunks", type = "TEXT" } }
-      })
+  local TTSSpeakRequestId
+  EXPECT_HMICALL("TTS.Speak",
+    {
+      speakType = "ALERT",
+      ttsChunks = { { text = "ttsChunks", type = "TEXT" } }
+    })
     :Do(function(_, data)
-        TTSSpeakRequestId = data.id
-      end)
+          TTSSpeakRequestId = data.id
+        end)
 
-    EXPECT_NOTIFICATION("OnHMIStatus",
-      { systemContext = "ALERT", hmiLevel = "FULL", audioStreamingState = "AUDIBLE" },
-      { systemContext = "ALERT", hmiLevel = "FULL", audioStreamingState = "ATTENUATED" },
-      { systemContext = "ALERT", hmiLevel = "FULL", audioStreamingState = "AUDIBLE" },
-      { systemContext = "MAIN", hmiLevel = "FULL", audioStreamingState = "AUDIBLE" })
+  EXPECT_NOTIFICATION("OnHMIStatus",
+    { systemContext = "ALERT", hmiLevel = "FULL", audioStreamingState = "AUDIBLE"    },
+    { systemContext = "ALERT", hmiLevel = "FULL", audioStreamingState = "ATTENUATED" },
+    { systemContext = "ALERT", hmiLevel = "FULL", audioStreamingState = "AUDIBLE"    },
+    { systemContext = "MAIN",  hmiLevel = "FULL", audioStreamingState = "AUDIBLE"    })
     :Times(4)
     :Do(function(exp, data)
-        if exp.occurences == 1 then
-          self.hmiConnection:SendNotification("TTS.Started")
-        elseif exp.occurences == 2 then
-          self.hmiConnection:SendResponse(TTSSpeakRequestId, "TTS.Speak", "SUCCESS", { })
-          self.hmiConnection:SendNotification("TTS.Stopped")
-        elseif exp.occurences == 3 then
-          RUN_AFTER(function()
-              self.hmiConnection:SendResponse(AlertRequestId, "UI.Alert", "SUCCESS", { })
-              end, 3000)
-          end
-        end)
-      local cid = self.mobileSession:SendRPC("Alert",
-        {
-          ttsChunks = { { text = "ttsChunks", type = "TEXT"} },
-          softButtons =
-          {
-            {
-              type = "TEXT",
-              text = "Button",
-              isHighlighted = false,
-              softButtonID = 1122,
-              systemAction = "DEFAULT_ACTION"
-            }
-          }
-        })
-      EXPECT_RESPONSE(cid, { success = true, resultCode = "SUCCESS" })
-      :Do(function()
-          self:sendOnSystemContext("MAIN")
-        end)
-    end
-
-    function Test:Case_alertStringsUpperBoundSize()
-      local AlertRequestId
-      EXPECT_HMICALL("UI.Alert",
-        {
-          alertStrings =
-          {
-            { fieldName = "alertText1", fieldText = "alertText1" },
-            { fieldName = "alertText2", fieldText = "alertText2" },
-            { fieldName = "alertText3", fieldText = "alertText3" }
-          }
-        })
-      :Do(function(_,data)
-          AlertRequestId = data.id
-          self:sendOnSystemContext("ALERT")
-        end)
-
-      EXPECT_NOTIFICATION("OnHMIStatus",
-        { systemContext = "ALERT", hmiLevel = "FULL", audioStreamingState = "AUDIBLE" },
-        { systemContext = "MAIN", hmiLevel = "FULL", audioStreamingState = "AUDIBLE" })
-      :Times(2)
-      :Do(function(exp, data)
           if exp.occurences == 1 then
-            self.hmiConnection:SendResponse(AlertRequestId, "UI.Alert", "SUCCESS", { })
+            self.hmiConnection:SendNotification("TTS.Started",{ })
+          elseif exp.occurences == 2 then
+            self.hmiConnection:SendResponse(TTSSpeakRequestId,"TTS.Speak", "SUCCESS", {})
+            self.hmiConnection:SendNotification("TTS.Stopped",{ })
+          elseif exp.occurences == 3 then
+            self.hmiConnection:SendResponse(AlertRequestId,"UI.Alert", "SUCCESS", {})
           end
         end)
-
-      local cid = self.mobileSession:SendRPC("Alert",
-        {
-          alertText1 = "alertText1",
-          alertText2 = "alertText2",
-          alertText3 = "alertText3"
-        })
-      EXPECT_RESPONSE(cid, { success = true, resultCode = "SUCCESS" })
-      :Do(function()
-          self:sendOnSystemContext("MAIN")
-        end)
-    end
-
-    function Test:Case_minimumValuesOfDurationParameter()
-      local AlertRequestId
-      EXPECT_HMICALL("UI.Alert",
-        {
-          alertStrings =
-          {
-            { fieldName = "alertText1", fieldText = "alertText1" },
-            { fieldName = "alertText2", fieldText = "alertText2" },
-            { fieldName = "alertText3", fieldText = "alertText3" }
-          },
-          duration = 3000,
-          progressIndicator = true
-        })
-      :Do(function(_,data)
-          AlertRequestId = data.id
-          self:sendOnSystemContext("ALERT")
-        end)
-
-      EXPECT_NOTIFICATION("OnHMIStatus",
-        { systemContext = "ALERT", hmiLevel = "FULL", audioStreamingState = "AUDIBLE" },
-        { systemContext = "MAIN", hmiLevel = "FULL", audioStreamingState = "AUDIBLE" })
-      :Times(2)
-      :Do(function(exp, data)
-          if exp.occurences == 1 then
-            self.hmiConnection:SendResponse(AlertRequestId, "UI.Alert", "SUCCESS", {})
-          end
-        end)
-
-      local cid = self.mobileSession:SendRPC("Alert",
-        {
-          alertText1 = "alertText1",
-          alertText2 = "alertText2",
-          alertText3 = "alertText3",
-          duration = 3000,
-          progressIndicator = true
-        })
-      EXPECT_RESPONSE(cid, { success = true, resultCode = "SUCCESS" })
-      :Do(function()
-          self:sendOnSystemContext("MAIN")
-        end)
-    end
-
-    function Test:Case_softButtonsTest()
-      local AlertRequestId
-      EXPECT_HMICALL("UI.Alert",
-        {
-          softButtons =
-          {
-            { softButtonID = 3000, systemAction = "DEFAULT_ACTION" },
-            { softButtonID = 3001, systemAction = "DEFAULT_ACTION" },
-            { softButtonID = 3002, systemAction = "DEFAULT_ACTION" },
-            { softButtonID = 3003, systemAction = "DEFAULT_ACTION" },
-          }
-        })
-      :Do(function(_,data)
-          AlertRequestId = data.id
-          self:sendOnSystemContext("ALERT")
-        end)
-
-      EXPECT_NOTIFICATION("OnHMIStatus",
-        { systemContext = "ALERT", hmiLevel = "FULL", audioStreamingState = "AUDIBLE" },
-        { systemContext = "MAIN", hmiLevel = "FULL", audioStreamingState = "AUDIBLE" })
-      :Times(2)
-      :Do(function(exp, data)
-          if exp.occurences == 1 then
-            self.hmiConnection:SendResponse(AlertRequestId, "UI.Alert", "SUCCESS", { })
-          end
-        end)
-
-      local function softBtn(title, id)
-        return {
-          type = "TEXT",
-          text = title,
-          isHighlighted = false,
-          softButtonID = id,
-          systemAction = "DEFAULT_ACTION"
-        }
-      end
-      local cid = self.mobileSession:SendRPC("Alert",
-        {
-          alertText1 = "alertText1",
-          softButtons =
-          {
-            softBtn("ButtonTitle1", 3000),
-            softBtn("ButtonTitle2", 3001),
-            softBtn("ButtonTitle3", 3002),
-            softBtn("ButtonTitle4", 3003)
-          }
-        })
-      EXPECT_RESPONSE(cid, { success = true, resultCode = "SUCCESS" })
-      :Do(function()
-          self:sendOnSystemContext("MAIN")
-        end)
-    end
-
-    function Test:CorrectHmiRawJSON()
-      self.hmiConnection:Send('{"jsonrpc":"2.0", "method":"Buttons.OnButtonPress", "params":{"name": "PRESET_2", "mode": "SHORT"}}')
-    end
-
-    function Test:IncorrectMobileJSON()
-      self.mobileSession.correlationId = self.mobileSession.correlationId + 1
-
-      local msg =
+  local cid = self.mobileSession:SendRPC("Alert",
+  {
+    ttsChunks = { { text = "ttsChunks", type = "TEXT"} },
+    softButtons =
+    {
       {
-        serviceType = 7,
-        frameInfo = 0,
-        rpcType = 0,
-        rpcFunctionId = 12,
-        rpcCorrelationId = self.mobileSession.correlationId,
-        payload = "{A}"
+         type = "TEXT",
+         text = "Button",
+         isHighlighted = false,
+         softButtonID = 1122,
+         systemAction = "DEFAULT_ACTION"
       }
-      self.mobileSession:Send(msg)
-      EXPECT_RESPONSE(self.mobileSession.correlationId, { success = false, resultCode = "INVALID_DATA" })
-    end
+    }
+  })
+  EXPECT_RESPONSE(cid, { success = true, resultCode = "SUCCESS" })
+    :Do(function()
+          SendOnSystemContext(self, "MAIN")
+        end)
+end
 
-    function Test:StopSDL()
-      StopSDL()
-    end
 
-    function Test:StartSDL()
-      StartSDL(config.pathToSDL, config.ExitOnCrash)
-    end
+--//////////////////////////////////////////////////////////////////////////////////--
+-- 5.Check processing messages on VR, UI interfaces
+function Test:Case_PerformInteractionTest()
 
-    function Test:InitHMI2()
-      self:initHMI()
-    end
+	local CorIdPI = self.mobileSession:SendRPC("PerformInteraction",
+  {
+    initialText = "initialText",
+    interactionMode = "BOTH",
+    interactionChoiceSetIDList = {1},
+  })
 
-    function Test:InitHMI_onReady2()
-      self:initHMI_onReady()
-    end
+local VRPIid
+  EXPECT_HMICALL("VR.PerformInteraction", 
+  {
+  })
+  :Do(function(_,data)
+  	VRPIid = data.id
+    self.hmiConnection:SendNotification("VR.Started",{ })
+      end)
 
-    function Test:ConnectMobile2()
-      self:connectMobile()
-    end
+local UIPIid
+  EXPECT_HMICALL("UI.PerformInteraction", 
+  {
+  })
+  :Do(function(_,data)
+  	UIPIid = data.id
+      end)
 
-    function Test:StartSession2()
-      self:startSession()
-    end
 
-    function Test:Stop()
-      self.mobileSession:StopService(7)
-    end
+	EXPECT_NOTIFICATION("OnHMIStatus",
+      { systemContext = "MAIN", hmiLevel = "FULL", audioStreamingState = "NOT_AUDIBLE" },
+      { systemContext = "MAIN", hmiLevel = "FULL", audioStreamingState = "AUDIBLE"},
+	    { systemContext = "HMI_OBSCURED", hmiLevel = "FULL", audioStreamingState = "AUDIBLE"},
+	    { systemContext = "MAIN", hmiLevel = "FULL", audioStreamingState = "AUDIBLE"    })
+	    :Times(4)
+	    :Do(function(exp, data)
+	          if exp.occurences == 1 then
+	            self.hmiConnection:SendError(VRPIid, "VR.PerformInteraction", "ABORTED", "VR.PerformInteraction is aborted by user")
+	            self.hmiConnection:SendNotification("VR.Stopped",{ })
 
-    function Test:StopSDL2()
-      StopSDL()
-    end
+	            SendOnSystemContext(self, "HMI_OBSCURED")
+	          elseif exp.occurences == 3 then
+	            self.hmiConnection:SendResponse(UIPIid,"UI.PerformInteraction", "SUCCESS", {choiceID = 1})
+	          end
+	        end)
+
+
+  EXPECT_RESPONSE(CorIdPI, { success = true, resultCode = "SUCCESS", choiceID = 1, triggerSource = "MENU" })
+  :Do(function(_,data)
+  	SendOnSystemContext(self, "MAIN")
+  		end)
+
+end
+
+--//////////////////////////////////////////////////////////////////////////////////--
+-- 6.Check creation of the new session
+function Test:Case_SecondSession()
+  -- Connected expectation
+  self.mobileSession1 = mobile_session.MobileSession(
+    self,
+    self.mobileConnection)
+end
+
+--//////////////////////////////////////////////////////////////////////////////////--
+-- 7.Check starting RPC service and registration app througt second created session
+function Test:Case_AppRegistrationInSecondSession()
+    self.mobileSession1:StartService(7)
+    :Do(function()
+            local CorIdRegister = self.mobileSession1:SendRPC("RegisterAppInterface",
+            {
+              syncMsgVersion =
+              {
+                majorVersion = 3,
+                minorVersion = 0
+              },
+              appName = "Test2 Application",
+              isMediaApplication = true,
+              languageDesired = 'EN-US',
+              hmiDisplayLanguageDesired = 'EN-US',
+              appHMIType = { "NAVIGATION" },
+              appID = "8675309"
+            })
+
+            EXPECT_HMINOTIFICATION("BasicCommunication.OnAppRegistered", 
+            {
+              application = 
+              {
+                appName = "Test2 Application"
+              }
+            })
+            :Do(function(_,data)
+              self.applications["Test2 Application"] = data.params.application.appID
+                end)
+
+            self.mobileSession1:ExpectResponse(CorIdRegister, { success = true, resultCode = "SUCCESS" })
+            :Timeout(2000)
+
+            self.mobileSession1:ExpectNotification("OnHMIStatus", 
+            { systemContext = "MAIN", hmiLevel = "NONE", audioStreamingState = "NOT_AUDIBLE"})
+            :Timeout(2000)
+            :Times(1)
+
+            DelayedExp(2000)
+        end)
+end
+
+--//////////////////////////////////////////////////////////////////////////////////--
+-- 8.Check receiving messages on mobile side according to mobile session
+function Test:ActivateSecondApp()
+  self.mobileSession1:ExpectNotification("OnHMIStatus",
+    { systemContext = "MAIN", hmiLevel = "FULL", audioStreamingState = "AUDIBLE"}
+    )
+
+    self.mobileSession:ExpectNotification("OnHMIStatus", 
+    { systemContext = "MAIN", hmiLevel = "BACKGROUND", audioStreamingState = "NOT_AUDIBLE"}
+    )
+
+    local RequestId = self.hmiConnection:SendRequest("SDL.ActivateApp", { appID = self.applications["Test2 Application"]})
+
+    --hmi side: expect SDL.ActivateApp response
+    EXPECT_HMIRESPONSE(RequestId)
+      :Do(function(_,data)
+        --In case when app is not allowed, it is needed to allow app
+          if
+              data.result.isSDLAllowed ~= true then
+
+                --hmi side: sending SDL.GetUserFriendlyMessage request
+                  local RequestId = self.hmiConnection:SendRequest("SDL.GetUserFriendlyMessage", 
+                          {language = "EN-US", messageCodes = {"DataConsent"}})
+
+                  --hmi side: expect SDL.GetUserFriendlyMessage response
+                EXPECT_HMIRESPONSE(RequestId)
+                      :Do(function(_,data)
+
+                    --hmi side: send request SDL.OnAllowSDLFunctionality
+                    self.hmiConnection:SendNotification("SDL.OnAllowSDLFunctionality", 
+                      {allowed = true, source = "GUI", device = {id = config.deviceMAC, name = "127.0.0.1"}})
+
+                    --hmi side: expect BasicCommunication.ActivateApp request
+                      EXPECT_HMICALL("BasicCommunication.ActivateApp")
+                        :Do(function(_,data)
+
+                          --hmi side: sending BasicCommunication.ActivateApp response
+                          self.hmiConnection:SendResponse(data.id,"BasicCommunication.ActivateApp", "SUCCESS", {})
+
+                      end)
+                      :Times(2)
+
+                      end)
+
+        end
+          end)
+
+end
+
+--//////////////////////////////////////////////////////////////////////////////////--
+-- Precondition: activation of first app
+function Test:WaitActivation()
+  EXPECT_NOTIFICATION("OnHMIStatus",
+    { systemContext = "MAIN", hmiLevel = "FULL", audioStreamingState = "AUDIBLE" })
+  local RequestId = self.hmiConnection:SendRequest("SDL.ActivateApp", { appID = self.applications["Test Application"]})
+  EXPECT_HMIRESPONSE(RequestId)
+end
+
+
+--//////////////////////////////////////////////////////////////////////////////////--
+-- 10.Check RUN_AFTER function execution
+function Test:Case_PerformAudioPassThruTest()
+	local CorIdPAPT = self.mobileSession:SendRPC("PerformAudioPassThru",
+  {
+  	audioPassThruDisplayText1 = "audioPassThruDisplayText1",
+  	samplingRate = "16KHZ",
+  	maxDuration = 10000,
+  	bitsPerSample = "16_BIT",
+  	audioType = "PCM"
+  })
+
+	local UIPAPTid
+  EXPECT_HMICALL("UI.PerformAudioPassThru", 
+  {
+  })
+  :Do(function(_,data)
+  	UIPAPTid = data.id
+    local function to_be_run()
+      self.hmiConnection:SendResponse(UIPAPTid,"UI.PerformAudioPassThru", "SUCCESS", {})
+    end 
+    RUN_AFTER(to_be_run,7000)
+      end)
+
+	EXPECT_RESPONSE(CorIdPAPT, { success = true, resultCode = "SUCCESS" })
+	:Timeout(15000)
+
+end
+
+--//////////////////////////////////////////////////////////////////////////////////--
+-- Precondition: activation of second app
+function Test:ActivateSecondApp()
+  EXPECT_ANY_SESSION_NOTIFICATION("OnHMIStatus",
+  { systemContext = "MAIN", hmiLevel = "FULL", audioStreamingState = "AUDIBLE"},
+  { systemContext = "MAIN", hmiLevel = "BACKGROUND", audioStreamingState = "NOT_AUDIBLE"})
+  :Times(2)
+
+  local RequestId = self.hmiConnection:SendRequest("SDL.ActivateApp", { appID = self.applications["Test2 Application"]})
+
+    --hmi side: expect SDL.ActivateApp response
+    EXPECT_HMIRESPONSE(RequestId)
+      :Do(function(_,data)
+        --In case when app is not allowed, it is needed to allow app
+          if
+              data.result.isSDLAllowed ~= true then
+
+                --hmi side: sending SDL.GetUserFriendlyMessage request
+                  local RequestId = self.hmiConnection:SendRequest("SDL.GetUserFriendlyMessage", 
+                          {language = "EN-US", messageCodes = {"DataConsent"}})
+
+                  --hmi side: expect SDL.GetUserFriendlyMessage response
+                EXPECT_HMIRESPONSE(RequestId)
+                      :Do(function(_,data)
+
+                    --hmi side: send request SDL.OnAllowSDLFunctionality
+                    self.hmiConnection:SendNotification("SDL.OnAllowSDLFunctionality", 
+                      {allowed = true, source = "GUI", device = {id = c"12ca17b49af2289436f303e0166030a21e525d266e209267433801a8fd4071a0", name = "127.0.0.1"}})
+
+                    --hmi side: expect BasicCommunication.ActivateApp request
+                      EXPECT_HMICALL("BasicCommunication.ActivateApp")
+                        :Do(function(_,data)
+
+                          --hmi side: sending BasicCommunication.ActivateApp response
+                          self.hmiConnection:SendResponse(data.id,"BasicCommunication.ActivateApp", "SUCCESS", {})
+
+                      end)
+                      :Times(2)
+
+                      end)
+
+        end
+          end)
+end
+
+--//////////////////////////////////////////////////////////////////////////////////--
+-- 11.Check sending empty request
+function Test:Case_ListFilesTest()
+  local CorIdList = self.mobileSession1:SendRPC("ListFiles",{})
+
+  self.mobileSession1:ExpectResponse(CorIdList, { success = true, resultCode = "SUCCESS"})
+  :Timeout(2000)
+
+end
