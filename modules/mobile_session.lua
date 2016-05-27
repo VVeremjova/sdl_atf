@@ -5,7 +5,10 @@ local functionId = require('function_id')
 local json = require('json')
 local expectations = require('expectations')
 local constants = require('protocol_handler/ford_protocol_constants')
-local validator = require('schema_validation')
+local load_schema = require('load_schema')
+
+local mob_schema = load_schema.mob_schema
+
 local Expectation = expectations.Expectation
 local Event = events.Event
 local SUCCESS = expectations.SUCCESS
@@ -77,7 +80,7 @@ function mt.__index:ExpectResponse(cor_id, ...)
         end
         xmlReporter.AddMessage("EXPECT_RESPONSE",{["id"] = tostring(cor_id),["name"] = tostring(func_name),["Type"]= "EXPECTED_RESULT"}, arguments)
         xmlReporter.AddMessage("EXPECT_RESPONSE",{["id"] = tostring(cor_id),["name"] = tostring(func_name),["Type"]= "AVALIABLE_RESULT"}, data.payload)
-        local _res, _err = validator.validate_mobile_response(func_name, arguments)
+        local _res, _err = mob_schema:Validate(func_name,"MOBILE", 'response', arguments)
         if (not _res) then return _res,_err end
         return compareValues(arguments, data.payload, "payload")
       end)
@@ -130,8 +133,8 @@ function mt.__index:ExpectNotification(funcName, ...)
         xmlReporter.AddMessage("EXPECT_NOTIFICATION",{["Id"] = module.notification_counter, 
           ["name"] = tostring(funcName),["Type"]= "EXPECTED_RESULT"}, arguments)
         xmlReporter.AddMessage("EXPECT_NOTIFICATION",{["Id"] = module.notification_counter, 
-          ["name"] = tostring(funcName),["Type"]= "AVALIABLE_RESULT"}, data.payload)
-        local _res, _err = validator.validate_mobile_notification(funcName, arguments)
+          ["name"] = tostring(funcName),["Type"]= "AVALIABLE_RESULT"}, data.payload)      
+        local _res, _err = mob_schema:Validate(funcName,"MOBILE", 'notification', arguments)
         if (not _res) then
           return _res,_err
         end

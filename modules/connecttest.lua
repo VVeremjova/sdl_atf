@@ -10,7 +10,12 @@ local events = require("events")
 local expectations = require('expectations')
 local functionId = require('function_id')
 local SDL = require('SDL')
-local validator = require('schema_validation')
+
+local load_schema = require('load_schema')
+
+local mob_schema = load_schema.mob_schema
+local hmi_schema = load_schema.hmi_schema
+
 local Event = events.Event
 
 local Expectation = expectations.Expectation
@@ -57,7 +62,7 @@ function module.hmiConnection:EXPECT_HMIRESPONSE(id, args)
       local _res, _err
       _res = true
       if not (table2str(arguments):match('error')) then
-        _res, _err = validator.validate_hmi_response(func_name, results_args2)
+        _res, _err = hmi_schema:Validate(func_name,"HMI", 'response', results_args2)
       end
       if (not _res) then
         return _res,_err
@@ -96,7 +101,7 @@ function EXPECT_HMINOTIFICATION(name,...)
         module.notification_counter = module.notification_counter + 1
         xmlReporter.AddMessage("EXPECT_HMINOTIFICATION", {["Id"] = correlation_id, ["name"] = tostring(name),["Type"] = "EXPECTED_RESULT"},arguments)
         xmlReporter.AddMessage("EXPECT_HMINOTIFICATION", {["Id"] = correlation_id, ["name"] = tostring(name),["Type"] = "AVALIABLE_RESULT"},data)
-        local _res, _err = validator.validate_hmi_notification(name, arguments)
+        local _res, _err = hmi_schema:Validate(name,"HMI", 'notification', arguments)
         if (not _res) then return _res,_err end
         return compareValues(arguments, data.params, "params")
       end)
@@ -124,7 +129,7 @@ function EXPECT_HMICALL(methodName, ...)
         end
         xmlReporter.AddMessage("EXPECT_HMICALL", {["Id"] = data.id, ["name"] = tostring(methodName),["Type"] = "EXPECTED_RESULT"},arguments)
         xmlReporter.AddMessage("EXPECT_HMICALL", {["Id"] = data.id, ["name"] = tostring(methodName),["Type"] = "AVALIABLE_RESULT"},data.params)
-        _res, _err = validator.validate_hmi_request(methodName, arguments)
+        _res, _err = hmi_schema:Validate(methodName,"HMI", 'request', arguments)
         if (not _res) then return _res,_err end
         return compareValues(arguments, data.params, "params")
       end)
@@ -171,7 +176,7 @@ function EXPECT_ANY_SESSION_NOTIFICATION(funcName, ...)
         else
           arguments = args[self.occurences]
         end
-        local _res, _err = validator.validate_mobile_notification(funcName, arguments)
+        local _res, _err = mob_schema:Validate(funcName,"MOBILE", 'notification', arguments)
         xmlReporter.AddMessage("EXPECT_ANY_SESSION_NOTIFICATION", {["name"] = tostring(funcName),["Type"]= "EXPECTED_RESULT"}, arguments)
         xmlReporter.AddMessage("EXPECT_ANY_SESSION_NOTIFICATION", {["name"] = tostring(funcName),["Type"]= "AVALIABLE_RESULT"}, data.payload)
         if (not _res) then return _res,_err end

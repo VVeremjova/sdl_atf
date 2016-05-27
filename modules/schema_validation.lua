@@ -15,6 +15,13 @@ local module = {
   MOBILE= 2
 }
 
+function module.CreateSchemaValidator(schema)
+  res = { }
+ res.schema = schema
+  setmetatable(res, module.mt)
+  return res
+end
+
 local function dump(o)
   if type(o) == 'table' then
     local s = '{ '
@@ -79,7 +86,6 @@ function module.json_validate(table1, table2)
 end
 
 local function compare(schema, function_id, msgType, user_data, mandatory_check)
-
   local doc = ''
   local bool_result = true
   local errorMessage = {}
@@ -325,28 +331,19 @@ local function compare(schema, function_id, msgType, user_data, mandatory_check)
   return schemaCompare(xml_schema,user_data)
 end
 
-function module.validate_hmi_request(function_id,user_data, mandatory_check)
-  return compare(module.HMI, function_id, 'request', user_data, mandatory_check)
-end
 
-function module.validate_mobile_request(function_id,user_data, mandatory_check)
-  return compare(module.MOBILE,function_id, 'request',user_data, mandatory_check)
-end
 
-function module.validate_hmi_response(function_id,user_data, mandatory_check)
-  return compare(module.HMI,function_id, 'response',user_data, mandatory_check)
-end
 
-function module.validate_mobile_response(function_id,user_data, mandatory_check)
-  return compare(module.MOBILE,function_id, 'response',user_data, mandatory_check)
-end
+function module.mt.__index:Validate(function_id, api_type, function_type, user_data, mandatory_check)
+  local result = true
+  local errorMessage = {}
 
-function module.validate_mobile_notification(function_id,user_data, mandatory_check)
-  return compare(module.MOBILE,function_id, 'notification',user_data, mandatory_check)
-end
-
-function module.validate_hmi_notification(function_id,user_data, mandatory_check)
-  return compare(module.HMI,function_id, 'notification',user_data, mandatory_check)
-end
+  if (api_type == "MOBILE") then
+    result, errorMessage = compare(module.MOBILE,function_id, function_type, user_data, mandatory_check)    
+  else
+    result, errorMessage = compare(module.HMI,function_id, function_type, user_data, mandatory_check)  
+  end
+    return result, errorMessage
+  end
 
 return module
