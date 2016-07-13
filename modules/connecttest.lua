@@ -604,10 +604,12 @@ function module:initHMI_onReady()
       hmiZoneCapabilities = "FRONT",
       softButtonCapabilities =
       {
-        shortPressAvailable = true,
-        longPressAvailable = true,
-        upDownAvailable = true,
-        imageSupported = true
+        {
+          shortPressAvailable = true,
+          longPressAvailable = true,
+          upDownAvailable = true,
+          imageSupported = true
+        }
       }
     })
 
