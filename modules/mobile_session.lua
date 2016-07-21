@@ -29,6 +29,7 @@ function mt.__index:ExpectEvent(event, name)
   return ret
 end
 function mt.__index:ExpectResponse(cor_id, ...)
+  local temp_cor_id = cor_id
   local func_name = self.cor_id_func_map[cor_id]
   local tbl_corr_id = {}
   if func_name then
@@ -43,9 +44,10 @@ function mt.__index:ExpectResponse(cor_id, ...)
             end
         end
     cor_id = tbl_corr_id[1]
+
     end
     if not func_name then 
-         error("Function with cor_id : "..cor_id.." was not sent by ATF")
+      error("Function with cor_id : "..temp_cor_id.." was not sent by ATF")
     end
   end
   local args = table.pack(...)
