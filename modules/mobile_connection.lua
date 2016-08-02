@@ -1,7 +1,9 @@
 local ph = require('protocol_handler/protocol_handler')
 local file_connection = require("file_connection")
-local reporter = require("reporter")
-local module = { mt = { __index = {} } }
+
+local module = { 
+  mt = { __index = {} }  
+}
 
 function module.MobileConnection(connection)
   res = { }
@@ -16,7 +18,7 @@ function module.mt.__index:Send(data)
   local messages = { }
   local protocol_handler = ph.ProtocolHandler()
   for _, msg in ipairs(data) do
-    reporter:LOG("MOBtoSDL", msg)
+    atf_logger.LOG("MOBtoSDL", msg)
     local msgs = protocol_handler:Compose(msg)
     for _, m in ipairs(msgs) do
       table.insert(messages, m)
@@ -44,7 +46,7 @@ function module.mt.__index:OnInputData(func)
     local msg = protocol_handler:Parse(binary)
     for _, v in ipairs(msg) do
       -- After refactoring should be moved in mobile session
-      xmlReporter:LOG("SDLtoMOB", v)
+      atf_logger.LOG("SDLtoMOB", v)
       func(this, v)
     end
   end

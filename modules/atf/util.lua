@@ -1,13 +1,20 @@
 local utils = require("atf.stdlib.argument_parser")
 config = require('config')
 xmlReporter = require("reporter")
+atf_logger = require("atf_logger")
 
-local module = { }
+local module = { 
+  script_file_name = ""
+}
 local script_files = {}
 
 RequiredArgument = utils.RequiredArgument
 OptionalArgument = utils.OptionalArgument
 NoArgument = utils.NoArgument
+
+function get_script_file_name()
+  return module.script_file_name
+end
 
 function table2str(o)
   if type(o) == 'table' then
@@ -185,7 +192,8 @@ function declare_short_opt(...)
   utils.declare_short_opt(...)
 end
 function script_execute(script_name)
+  module.script_file_name = script_name  
   xmlReporter = xmlReporter.init(tostring(script_name))
+  atf_logger = atf_logger.init_log(tostring(script_name))
   dofile(script_name)
 end
-

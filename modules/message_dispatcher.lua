@@ -1,9 +1,12 @@
 local ph = require('protocol_handler/protocol_handler')
-local module = { mt = { __index = { } } }
+
+local module = { 
+  mt = { __index = { } }
+}
 local fbuffer_mt = { __index = { } }
 local fstream_mt = { __index = { } }
 
-function module.FileStorage(filename)
+function module.FileStorage(filename)    
   local res = {}
   res.filename = filename
   res.protocol_handler = ph.ProtocolHandler()
@@ -103,7 +106,7 @@ function fbuffer_mt.__index:GetMessage()
   end
   return header, nil
 end
-function module.MessageDispatcher(connection)
+function module.MessageDispatcher(connection)  
   local res = {}
   res._d = qt.dynamic()
   res.generators = { }
@@ -130,7 +133,7 @@ function module.MessageDispatcher(connection)
       end
       local header, msg, timeout = res.generators[res.idx]:GetMessage()
       if header and header.messageId then
-        xmlReporter:LOG("SDLtoMOB", header)         
+        atf_logger.LOG("SDLtoMOB", header)        
       end
       if msg and #msg > 0 then
         if res.bufferSize > #msg then

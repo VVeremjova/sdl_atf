@@ -1,14 +1,17 @@
 require('os')
-
+local sdl_logger = require('sdl_logger')
+local config = require('config')
 local SDL = { }
+
+require('atf.util')
 
 SDL.exitOnCrash = true
 SDL.STOPPED = 0
 SDL.RUNNING = 1
 SDL.CRASH = -1
 
-function SDL:StartSDL(pathToSDL, smartDeviceLinkCore, ExitOnCrash)
-  xmlReporter:initSDLLOG()
+function SDL:StartSDL(pathToSDL, smartDeviceLinkCore, ExitOnCrash)    
+  sdl_logger.init_log(get_script_file_name())
   if ExitOnCrash then
     self.exitOnCrash = ExitOnCrash
   end
@@ -27,7 +30,7 @@ function SDL:StartSDL(pathToSDL, smartDeviceLinkCore, ExitOnCrash)
     end
   end
   local msg = "SDL had already started from ATF"
-  xmlReporter.AddMessage("StartSDL", {["message"] = msg})
+  xmlReporter.AddMessage("StartSDL", {["message"] = msg})  
   print(console.setattr(msg, "cyan", 1))
   return nil, msg
 end
@@ -36,9 +39,9 @@ function SDL:StopSDL()
   self.autoStarted = false
   local status = self:CheckStatusSDL()
   if status == self.RUNNING then
-    local result = os.execute ('./StopSDL.sh')
-    xmlReporter:closeSDLlogSocket()
+    local result = os.execute ('./StopSDL.sh')    
     if result then
+      sdl_logger.close()
       return true
     end
   else
