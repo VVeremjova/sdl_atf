@@ -37,7 +37,7 @@ $ git submodule update
 **2** Install Qt5.3+
 
 **2** Setup QMAKE environment variable to path to qmake
-```export QMAKE=${PATH_TO_QMAKE} ``` 
+```export QMAKE=${PATH_TO_QMAKE} ```
 *You can get path to qmake this way:*
 ```
 $ sudo find / -name qmake
@@ -64,6 +64,54 @@ $ sudo find / -name qmake
 
 ## Run:
 ``` ./start.sh [options] [script file name] ```
+
+### Useful options:
+#### Path to SDL
+You can setup path to SDL via command line with ```--sdl_core``` option.
+
+**Example :**
+```
+./start.sh --sdl_core=~/development/sdl/build/bin ./test_scripts/ActivationDuringActiveState.lua
+```
+
+Or via config file(```modules/config.lua```) with config parameter
+
+**Example :**
+*ATF config : modules/config.lua :*
+```
+config.pathToSDL = "~/development/sdl/build/bin"
+```
+
+#### Connect ATF to already started SDL
+ATF is able to connect to already started SDL.
+Note that you should be sure that:
+ - ATF is configured not to start SDL
+ - SDL is configured not to start HMI
+ - mobile and HMI sockets options match each other in SDL and ATF configs.
+
+**Example :**
+
+*ATF config : modules/config.lua :*
+```
+config.autorunSDL = false
+config.hmiUrl = "ws://localhost"
+config.hmiPort = 8087
+config.mobileHost = "localhost"
+config.mobilePort = 12345
+```
+
+*SDL config : smartDeviceLink.ini :*
+```
+[HMI]
+; Open the $LinkToWebHMI in chromium browser
+LaunchHMI = false
+; WebSocket connection address and port
+ServerAddress = 127.0.0.1
+ServerPort = 8087
+[TransportManager]
+; Listening port form incoming TCP mobile connection
+TCPAdapterPort = 12345
+```
 
 ## Run tests
 ``` make test ```
