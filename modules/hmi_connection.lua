@@ -31,7 +31,8 @@ local resultCodes =
   WARNINGS = 21,
   GENERIC_ERROR = 22,
   USER_DISALLOWED = 23,
-  TRUNCATED_DATA = 24
+  TRUNCATED_DATA = 24,
+  SAVED = 25
 }
 
 function module.mt.__index:Send(text)
