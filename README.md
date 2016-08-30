@@ -67,11 +67,11 @@ $ sudo find / -name qmake
 
 ### Useful options:
 #### Path to SDL
-You can setup path to SDL via command line with ```--sdl_core``` option.
+You can setup path to SDL via command line with ```--sdl-core``` option.
 
 **Example :**
 ```
-./start.sh --sdl_core=~/development/sdl/build/bin ./test_scripts/ActivationDuringActiveState.lua
+./start.sh --sdl-core=~/development/sdl/build/bin ./test_scripts/ActivationDuringActiveState.lua
 ```
 
 Or via config file(```modules/config.lua```) with config parameter

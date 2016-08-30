@@ -13,7 +13,7 @@ declare_short_opt("-r", NoArgument, "Recursively scan of folders")
 declare_short_opt("-p", NoArgument, "Parallel script running mode")
 declare_long_opt("--storeFullSDLLogs", NoArgument, "Store Full SDL Logs enable")
 declare_long_opt("--heartbeat", RequiredArgument, "Hearbeat timeout value")
-declare_long_opt("--sdl_core", RequiredArgument, "Path to folder with SDL binary")
+declare_long_opt("--sdl-core", RequiredArgument, "Path to folder with SDL binary")
 declare_long_opt("--report-mark", RequiredArgument, "Marker of testing report")
 
 local script_files = parse_cmdl()
