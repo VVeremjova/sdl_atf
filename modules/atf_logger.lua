@@ -18,10 +18,10 @@ local Logger =
 }
 
 Logger.mobile_log_format = "%s(%s) [version: %s, frameType: %s, encryption: %s, serviceType: %s, frameInfo: %s, messageId: %s] : %s \n"
-Logger.hmi_log_format = "%s(%s) : %s \n"
+Logger.hmi_log_format = "%s[%s] : %s \n"
 
 local function formated_time()
-  return os.date("%X")
+  return qdatetime.get_datetime("dd MM yyyy hh:mm:ss, zzz")
 end
 
 local function is_hmi_tract(tract, message)
