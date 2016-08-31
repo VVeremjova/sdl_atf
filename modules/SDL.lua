@@ -10,13 +10,24 @@ SDL.STOPPED = 0
 SDL.RUNNING = 1
 SDL.CRASH = -1
 
+function sleep(n)
+  os.execute("sleep " .. tonumber(n))
+end
+
 function SDL:StartSDL(pathToSDL, smartDeviceLinkCore, ExitOnCrash)    
   sdl_logger.init_log(get_script_file_name())
   if ExitOnCrash then
     self.exitOnCrash = ExitOnCrash
   end
   local status = self:CheckStatusSDL()
-  if status == self.STOPPED then
+
+  while status == self.RUNNING do
+    sleep(1)
+    print('Waiting for SDL shutdown')
+    status = self:CheckStatusSDL()
+  end
+
+  if status == self.STOPPED  or status == self.CRASH then
     local result = os.execute ('./StartSDL.sh ' .. pathToSDL .. ' ' .. smartDeviceLinkCore)
     if result then
       local msg = "SDL started"
