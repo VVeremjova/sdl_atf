@@ -73,8 +73,10 @@ function module.mt.__index:SendResponse(id, methodName, code, params)
     method = methodName,
     code = resultCodes[code]
   }
-  for k, v in pairs(params) do
-    data.result[k] = v
+  if params ~= nil then
+    for k, v in pairs(params) do
+      data.result[k] = v
+    end
   end
   local text = json.encode(data)
   self:Send(text)
