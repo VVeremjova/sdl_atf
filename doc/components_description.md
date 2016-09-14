@@ -1,6 +1,8 @@
 #ATF components overview
 This  documents provide short descriptions of main ATF components.
-Components diagram can be found on https://adc.luxoft.com/confluence/display/APPLINK/ATF+component+view 
+Components diagram:
+
+![ATF Components diagram](./assets/ATF component view.png)
 
 ## C++ Core
 C++ Core runs lua core.
