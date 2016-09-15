@@ -12,6 +12,7 @@ local Logger =
   timestamp = 0,
   mobile_log_format = '',
   hmi_log_format = '',
+  start_file_timestamp = 0,
   mt = { 
     __index={} 
   }
@@ -20,8 +21,11 @@ local Logger =
 Logger.mobile_log_format = "%s(%s) [version: %s, frameType: %s, encryption: %s, serviceType: %s, frameInfo: %s, messageId: %s] : %s \n"
 Logger.hmi_log_format = "%s[%s] : %s \n"
 
-local function formated_time()
-  return qdatetime.get_datetime("dd MM yyyy hh:mm:ss, zzz")
+function Logger.formated_time(withoutDate)
+  if withoutDate ==true then
+    return qdatetime.get_datetime("hh:mm:ss,zzz")  
+  end
+  return qdatetime.get_datetime("dd MM yyyy hh:mm:ss, zzz")  
 end
 
 local function is_hmi_tract(tract, message)
@@ -37,7 +41,9 @@ end
 
 
 function Logger:MOBtoSDL(track, message)
-  local log_str = string.format(Logger.mobile_log_format,"MOB->SDL ", formated_time(), message.version, message.frameType, message.encryption, message.serviceType, message.frameInfo, message.messageId, message.payload)
+  local log_str = string.format(Logger.mobile_log_format,"MOB->SDL ", Logger.formated_time(), 
+    message.version, message.frameType, message.encryption, message.serviceType, message.frameInfo, 
+    message.messageId, message.payload)
   if is_hmi_tract(tract, message) then
     self.atf_log_file:write(log_str)
   end
@@ -58,7 +64,9 @@ function Logger:SDLtoMOB(tract, message)
   if type(payload) == "table" then
     payload = json.encode(payload)
   end
-  local log_str = string.format(Logger.mobile_log_format,"SDL->MOB", formated_time(), message.version, message.frameType, message.encryption, message.serviceType, message.frameInfo, message.messageId, payload)
+  local log_str = string.format(Logger.mobile_log_format,"SDL->MOB", Logger.formated_time(), 
+    message.version, message.frameType, message.encryption, message.serviceType, message.frameInfo, 
+    message.messageId, payload)
   if is_hmi_tract(tract, message) then
     self.atf_log_file:write(log_str)
   end
@@ -68,7 +76,7 @@ function Logger:SDLtoMOB(tract, message)
 end
 
 function Logger:HMItoSDL(tract, message)
-  local log_str = string.format(Logger.hmi_log_format, "HMI->SDL", formated_time(), message)
+  local log_str = string.format(Logger.hmi_log_format, "HMI->SDL", Logger.formated_time(), message)
   if is_hmi_tract(tract, message) then
     self.atf_log_file:write(log_str)
   end
@@ -78,7 +86,7 @@ function Logger:HMItoSDL(tract, message)
 end
 
 function Logger:SDLtoHMI(tract, message)
-  local log_str = string.format(Logger.hmi_log_format, "SDL->HMI", formated_time(), message)
+  local log_str = string.format(Logger.hmi_log_format, "SDL->HMI", Logger.formated_time(), message)
   if is_hmi_tract(tract, message) then
     self.atf_log_file:write(log_str)
   end
@@ -112,6 +120,8 @@ end
 
 function Logger.init_log(script_name)
   Logger.script_file_name = script_name
+  Logger.start_file_timestamp = timestamp()
+
   local timestamp = tostring(os.date('%Y%m%d%H%M%S', os.time()))
   local log_file_name = get_log_file_name(timestamp, "ATFLogs") 
   local atf_log_file_name = log_file_name ..".txt"
@@ -143,6 +153,13 @@ end
 function Logger.LOG(tract, message)
   if config.excludeReport then return end
   Logger[tract](Logger, tract, message)
+end
+
+function Logger.LOGTestFinish(count)
+  Logger.atf_log_file:write(string.format("\n\n===== Total executing time is %s ms =====n", count))
+  if config.storeFullATFLogs then
+    Logger.full_atf_log_file:write(string.format("\n\n===== Total executing time is %s ms =====\n", count))
+  end
 end
 
 return Logger

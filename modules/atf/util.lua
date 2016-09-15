@@ -69,6 +69,11 @@ function print_startscript(script_name)
   print("==============================")
 end
 function print_stopscript(script_name)
+
+  local count =  timestamp() - atf_logger.start_file_timestamp
+  atf_logger.LOGTestFinish(count)
+  print("==============================")
+  print(string.format("Total executing time is %s ms", tostring(count)))
   print("==============================")
   print(string.format("Finish '%s'",script_name or script_files[1]))
   print("==============================")
