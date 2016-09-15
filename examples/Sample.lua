@@ -3,9 +3,7 @@ require('cardinalities')
 local events = require('events')  
 local mobile_session = require('mobile_session')
 
-local commonFunctions = require('user_modules/shared_testcases/commonFunctions')
-local commonSteps = require('user_modules/shared_testcases/commonSteps')
-local commonTestCases = require('user_modules/shared_testcases/commonTestCases')
+local CommonFunctions = require('examples/CommonFunctions')
 require('user_modules/AppTypes')
 
 config.deviceMAC = "12ca17b49af2289436f303e0166030a21e525d266e209267433801a8fd4071a0"
@@ -16,8 +14,7 @@ config.defaultProtocolVersion = 2
 
 
 -- Add group for tests
-
-commonFunctions:newTestCasesGroup("------------------------------- Preconditions ----------------------------------")
+CommonFunctions:newTestCasesGroup("------------------------------- Preconditions ----------------------------------")
 -- All tests should begin with a capital letter.
 --Description: Activation App by sending SDL.ActivateApp  
 function Test:ActivationApp()
@@ -89,11 +86,7 @@ Test["PutFile"] = function(self)
 ---------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 
- commonFunctions:newTestCasesGroup("------------------------------- Basic RPCs -------------------------------------")
-
--- For testing RegisterAppInterface could be used common test
-commonSteps:RegisterAppInterface() 
-
+ CommonFunctions:newTestCasesGroup("------------------------------- Basic RPCs -------------------------------------")
 
 function Test:AddCommand()
   --mobile side: sending AddCommand request
@@ -339,7 +332,7 @@ end
 ------------------------------------------------------------------------------------------------------
 
 
- commonFunctions:newTestCasesGroup("------------------------------ Stop/Start SDL ----------------------------------")
+ CommonFunctions:newTestCasesGroup("------------------------------ Stop/Start SDL ----------------------------------")
 function Test:StopSDL()
   StopSDL()
 end
@@ -365,14 +358,14 @@ function Test:StartSession()
 end
 
 function Test:ActivationApp()
-  commonSteps:ActivationApp(self)
+  CommonFunctions:ActivationApp(self)
 end
 
 
 ----------------------------------------------------------------------------------------------------
 -------------------------------------------Testing heartbeat----------------------------------------
 ----------------------------------------------------------------------------------------------------
- commonFunctions:newTestCasesGroup("--------------------------------- Heartbeat ------------------------------------")
+ CommonFunctions:newTestCasesGroup("--------------------------------- Heartbeat ------------------------------------")
 
 --  some local functions 
 local function userPrint( color, message, nsession )
@@ -394,13 +387,13 @@ function Test:RegisterAppSession2()
   self.mobileSession2.ignoreHeartBeatAck = true
   self.mobileSession2:Start()
   self.mobileSession2:StartService(7)
-  commonTestCases:DelayedExp(20000)  
+  CommonFunctions:DelayedExp(20000)  
   self.mobileSession2.sendHeartbeatToSDL = false
-  commonTestCases:DelayedExp(20000)
+  CommonFunctions:DelayedExp(20000)
 end
 
 function Test:NoHBToSDLNoDisconnect()
- commonTestCases:DelayedExp(20000)
+ CommonFunctions:DelayedExp(20000)
 
   -- hmi side: expect OnAppUnregistered notification
   EXPECT_HMINOTIFICATION("BasicCommunication.OnAppUnregistered", {unexpectedDisconnect = true, appID = HMIAppID})
@@ -426,7 +419,7 @@ function Test:RegisterAppSession3()
  end
   
 function Test:DisconnectDueToHeartbeat()
-  commonTestCases:DelayedExp(20000)
+  CommonFunctions:DelayedExp(20000)
   userPrint(33, "AppSession3 started, HB enabled", self.mobileSession3) 
   userPrint2(33, "In DisconnectDueToHeartbeat TC disconnection is expected because HB process started by SDL after app's HB request")    
 end
