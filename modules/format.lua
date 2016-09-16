@@ -1,5 +1,6 @@
 local module = { }
 console = require('console')
+local config = require('config')
 function module.PrintCaseResult(startCaseTime, caseName, success, errorMessage, timespan)
   caseName = tostring(caseName)
   if #caseName > 85 then
@@ -18,7 +19,11 @@ function module.PrintCaseResult(startCaseTime, caseName, success, errorMessage, 
     result = success and "[SUCCESS]" or "[FAIL]"
   end
 
-  print(string.format("[%s] %s %s (%d ms)",startCaseTime, caseName, result, timespan))
+  if config.ShowTimeInConsole == true then
+    print(string.format("[%s] %s %s (%d ms)",startCaseTime, caseName, result, timespan))
+  else
+    print(string.format("%s %s (%d ms)", caseName, result, timespan))
+  end
   if not success and errorMessage then
     for k, v in pairs(errorMessage) do
       local errmsg = " " .. k .. ": " .. v

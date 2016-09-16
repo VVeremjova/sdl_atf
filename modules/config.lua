@@ -17,6 +17,7 @@ config.sdl_logs_port = 6676
 
 config.ExitOnCrash = true
 config.autorunSDL = true
+config.ShowTimeInConsole = true
 
 -- By default, report is collecting
 config.excludeReport = false
