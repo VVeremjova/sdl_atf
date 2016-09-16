@@ -63,6 +63,31 @@ function table.removeKey(t, k)
   return a
 end
 
+local function convertMs(milliseconds)
+  local seconds = math.floor( (milliseconds / 1000) % 60)
+  local minutes = math.floor( ((milliseconds / (1000 * 60)) % 60))
+  local hours = math.floor(((milliseconds / (1000 * 60 * 60)) % 24))
+  local days = math.floor( (milliseconds / (1000 * 60 * 60 * 24)))
+  local ms = milliseconds - (days*(1000 * 60 * 60 * 24)+ hours*(1000 * 60 * 60)+minutes*(1000 * 60)+seconds*1000)
+  local converted_time = "(summary ".. tostring(milliseconds).. "ms)"
+  if ms ~= 0 then
+    converted_time = tostring(ms).."ms "..converted_time
+  end
+  if seconds ~= 0 then
+    converted_time = tostring(seconds).."s "..converted_time
+  end
+  if minutes ~= 0 then
+    converted_time = tostring(minutes).."min "..converted_time
+  end
+  if hours ~=0 then
+    converted_time = tostring(hours).."h "..converted_time
+  end
+  if days ~=0 then
+    converted_time = tostring(days).."d "..converted_time
+  end
+  return converted_time
+end
+
 function print_startscript(script_name)
   print("==============================")
   print(string.format("Start '%s'",script_name))
@@ -71,9 +96,9 @@ end
 function print_stopscript(script_name)
 
   local count =  timestamp() - atf_logger.start_file_timestamp
-  atf_logger.LOGTestFinish(count)
-  print("==============================")
-  print(string.format("Total executing time is %s ms", tostring(count)))
+  local counttime =  convertMs(count)
+  atf_logger.LOGTestFinish(counttime)
+  print(string.format("Total executing time is %s", counttime))
   print("==============================")
   print(string.format("Finish '%s'",script_name or script_files[1]))
   print("==============================")

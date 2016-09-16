@@ -156,9 +156,9 @@ function Logger.LOG(tract, message)
 end
 
 function Logger.LOGTestFinish(count)
-  Logger.atf_log_file:write(string.format("\n\n===== Total executing time is %s ms =====n", count))
+  Logger.atf_log_file:write(string.format("\n\n===== Total executing time is %s =====\n", count))
   if config.storeFullATFLogs then
-    Logger.full_atf_log_file:write(string.format("\n\n===== Total executing time is %s ms =====\n", count))
+    Logger.full_atf_log_file:write(string.format("\n\n===== Total executing time is %s =====\n", count))
   end
 end
 
