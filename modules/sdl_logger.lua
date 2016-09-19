@@ -82,7 +82,7 @@ end
 
 function module.close()  
   if(module.socket) then module.socket:close() end
-  os.execute('bash ./WaitClosingSocket.sh '..config.sdl_logs_port)  
+  os.execute('bash ./tools/WaitClosingSocket.sh '..config.sdl_logs_port)  
 end
 
 return module

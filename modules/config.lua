@@ -10,7 +10,10 @@ config.heartbeatTimeout = 7000
 config.defaultProtocolVersion = 3
 
 -- path to SDL binary
+-- Example: "/home/user/sdl_build/bin"
 config.pathToSDL = ""
+-- Example: "/home/user/sdl_panasonic/src/components/interfaces"
+config.pathToSDLSources = ""
 config.SDL = "smartDeviceLinkCore"
 config.sdl_logs_host = "localhost"
 config.sdl_logs_port = 6676
@@ -20,12 +23,12 @@ config.autorunSDL = true
 config.ShowTimeInConsole = true
 
 -- By default, report is collecting
-config.excludeReport = false
+config.excludeReport = true
 -- Create separate file with full ATF logs for all test cases.
 -- Log includes json files and service messages related to each test case
-config.storeFullATFLogs = false
+config.storeFullATFLogs = true
 -- Store full SDLCore logs
-config.storeFullSDLLogs = false
+config.storeFullSDLLogs = true
 -- Path to collecting ATF and SDL logs
 config.reportPath = "./TestingReports"
 -- For storing sdl log -"x" before start script and +"x" after end script execution. In milliseconds(ms).

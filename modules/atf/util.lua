@@ -88,6 +88,19 @@ local function convertMs(milliseconds)
   return converted_time
 end
 
+function check_required_fields()
+  if (not is_file_exists(config.pathToSDL.."smartDeviceLinkCore")) and 
+     (not is_file_exists(config.pathToSDL.."/smartDeviceLinkCore")) then
+    print("ERROR: SDL is not accessible at the specified path: "..config.pathToSDL)
+    os.exit(1)
+  end
+  if (not is_file_exists(config.pathToSDLInterfaces.."MOBILE_API.xml")) and 
+     (not is_file_exists(config.pathToSDLInterfaces.."/MOBILE_API.xml")) then
+    print("ERROR: XML files are not accessible at the specified path: "..config.pathToSDLInterfaces)
+    os.exit(1)
+  end
+end
+
 function print_startscript(script_name)
   print("==============================")
   print(string.format("Start '%s'",script_name))
@@ -182,11 +195,6 @@ function module.heartbeat(str)
 end
 
 function module.sdl_core(str)
-  if (not is_file_exists(str.."smartDeviceLinkCore")) and 
-     (not is_file_exists(str.."/smartDeviceLinkCore")) then
-    error("SDL is not accessible at the specified path: "..str)
-    os.exit(1)
-  end
   config.pathToSDL = str
 end
 
@@ -222,6 +230,7 @@ function declare_short_opt(...)
   utils.declare_short_opt(...)
 end
 function script_execute(script_name)
+  check_required_fields()
   module.script_file_name = script_name  
   xmlReporter = xmlReporter.init(tostring(script_name))
   atf_logger = atf_logger.init_log(tostring(script_name))

@@ -14,6 +14,17 @@ function sleep(n)
   os.execute("sleep " .. tonumber(n))
 end
 
+function CopyFile(file, newfile)
+  return os.execute (string.format('cp "%s" "%s"', file, newfile))
+end
+
+function CopyInterface()
+  local mobile_api = config.pathToSDLInterfaces .. '/MOBILE_API.xml'
+  local hmi_api = config.pathToSDLInterfaces .. '/HMI_API.xml'
+  CopyFile(mobile_api, 'data/MOBILE_API.xml')
+  CopyFile(hmi_api, 'data/HMI_API.xml')
+end
+
 function SDL:StartSDL(pathToSDL, smartDeviceLinkCore, ExitOnCrash)    
   sdl_logger.init_log(get_script_file_name())
   if ExitOnCrash then
@@ -28,7 +39,8 @@ function SDL:StartSDL(pathToSDL, smartDeviceLinkCore, ExitOnCrash)
   end
 
   if status == self.STOPPED  or status == self.CRASH then
-    local result = os.execute ('./StartSDL.sh ' .. pathToSDL .. ' ' .. smartDeviceLinkCore)
+    CopyInterface()
+    local result = os.execute ('./tools/StartSDL.sh ' .. pathToSDL .. ' ' .. smartDeviceLinkCore)
     if result then
       local msg = "SDL started"
       xmlReporter.AddMessage("StartSDL", {["message"] = msg})
@@ -50,7 +62,7 @@ function SDL:StopSDL()
   self.autoStarted = false
   local status = self:CheckStatusSDL()
   if status == self.RUNNING then
-    local result = os.execute ('./StopSDL.sh')    
+    local result = os.execute ('./tools/StopSDL.sh')    
     if result then
       sdl_logger.close()
       return true
