@@ -13,7 +13,7 @@ config.defaultProtocolVersion = 3
 -- Example: "/home/user/sdl_build/bin"
 config.pathToSDL = ""
 -- Example: "/home/user/sdl_panasonic/src/components/interfaces"
-config.pathToSDLSources = ""
+config.pathToSDLInterfaces = ""
 config.SDL = "smartDeviceLinkCore"
 config.sdl_logs_host = "localhost"
 config.sdl_logs_port = 6676
@@ -23,7 +23,7 @@ config.autorunSDL = true
 config.ShowTimeInConsole = true
 
 -- By default, report is collecting
-config.excludeReport = true
+config.excludeReport = false
 -- Create separate file with full ATF logs for all test cases.
 -- Log includes json files and service messages related to each test case
 config.storeFullATFLogs = true
