@@ -83,7 +83,13 @@ function mt.__index:ExpectResponse(cor_id, ...)
         xmlReporter.AddMessage("EXPECT_RESPONSE",{["id"] = tostring(cor_id),["name"] = tostring(func_name),["Type"]= "EXPECTED_RESULT"}, arguments)
         xmlReporter.AddMessage("EXPECT_RESPONSE",{["id"] = tostring(cor_id),["name"] = tostring(func_name),["Type"]= "AVALIABLE_RESULT"}, data.payload)
         local _res, _err = mob_schema:Validate(func_name, load_schema.response, data.payload)
+
         if (not _res) then return _res,_err end
+        -- Workaround for non-existed value in enum
+        if _err~=nil and err~="" then
+          return true, _err
+        end
+        -- Finish workaround
         return compareValues(arguments, data.payload, "payload")
       end)
   end
