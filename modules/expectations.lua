@@ -81,9 +81,14 @@ function module.Expectation(name, connection)
     if not self.verifyData then self.verifyData = {} end
     self.verifyData[#self.verifyData + 1] = function(self, data)
       local valid, msg = func(self, data)
+
       if not valid then
         self.status = module.FAILED
         self.errorMessage["ValidIf"] = msg
+      else
+        if msg ~= nil and msg~="" then
+          self.errorMessage["WARNING"] = msg
+        end
       end
     end
     return self

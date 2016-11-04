@@ -34,6 +34,17 @@ function module.PrintCaseResult(startCaseTime, caseName, success, errorMessage, 
       end
     end
   end
+  -- Print warnings
+  if success and errorMessage then
+    for k, v in pairs(errorMessage) do
+      local errmsg = " " .. k .. ": " .. v
+      if config.color then
+        print(console.setattr(errmsg, "yellow", 1))
+      else
+        print(errmsg)
+      end
+    end
+  end
   return module
 end
 return module
