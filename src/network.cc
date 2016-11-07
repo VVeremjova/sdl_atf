@@ -5,6 +5,9 @@
 #include <QTcpSocket>
 #include <QTcpServer>
 #include <QWebSocket>
+#include <QEventLoop>
+#include <unistd.h>
+
 #line 22 "network.nw"
 // TcpClient functions/*{{{*/
 int network_tcp_client(lua_State *L) {/*{{{*/
@@ -153,6 +156,7 @@ int network_web_socket(lua_State *L) {/*{{{*/
   lua_setmetatable(L, -2);
   return 1;
 }/*}}}*/
+
 int web_socket_open(lua_State *L) {/*{{{*/
   
 #line 153 "network.nw"
@@ -161,7 +165,21 @@ QWebSocket *webSocket =
 #line 126 "network.nw"
   QUrl url(luaL_checkstring(L, 2));
   url.setPort(lua_tointegerx(L, 3, NULL));
-  webSocket->open(url);
+
+  QEventLoop loop;
+  #line 170 "network.nw"
+
+  // Create connection when websocket connected 
+  QObject::connect(webSocket, SIGNAL(connected()), &loop, SLOT(quit()));
+  QObject::connect(webSocket, SIGNAL(disconnected()), &loop, SLOT(quit()));
+
+  // Wait until socket connection is established
+  while (webSocket->state() != QAbstractSocket::ConnectedState) {
+    webSocket->open(url);
+    loop.exec();
+    usleep(100);
+  }
+  
   return 0;
 }/*}}}*/
 int web_socket_close(lua_State *L) {/*{{{*/
