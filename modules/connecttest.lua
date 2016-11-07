@@ -500,7 +500,7 @@ function module:initHMI_onReady()
       rows = rows or 1
     }
   end
-  local function image_field(name, width, heigth)
+  local function image_field(name, width, height)
     return
     {
       name = name,
