@@ -2,6 +2,7 @@ xmlReporter = require("reporter")
 config = require("config")
 
 local sdl_log = require('sdl_logger')
+local atf_log = require('atf_logger')
 local io = require("atf.stdlib.std.io")
 
 function FindDirectory(directory, sub_directory)
@@ -40,14 +41,13 @@ print ("Sdl Logger test started")
 print("==============\n")
 
 local dates = os.date("%Y%m%d%H%M")
-
-local ReportPath = FindDirectory("./TestingReports/", "ATFLogs_"..dates)
-ReportPath = "TestingReports/".. ReportPath.."/test"
+sdl_log.init_log("SDLLogTest.lua")
+local ReportPath = FindDirectory("./TestingReports/", "SDLLogs_"..dates)
+ReportPath = "TestingReports/".. ReportPath .. "/"
 
 FindReportPath(ReportPath)
 
 ReportName = FindReport(ReportPath, "SDLLogTest_"..dates)
-
 print("============== \n")
 print ("Test ended")
 quit()

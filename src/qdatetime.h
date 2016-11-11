@@ -10,4 +10,4 @@ extern "C" {
 #include <QDateTime>
 #include <QtGlobal>
 
-int luaopen_qdatetime(lua_State *L);
+int luaopen_qdatetime(lua_State* L);

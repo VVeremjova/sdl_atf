@@ -7,3 +7,12 @@ test/out
 moc_*.cpp
 *.out
 *.swp
+local_config.lua
+TestingReports/
+bin/
+data/*
+files/
+user_modules/
+sdl.pid
+ErrorLog.txt
+*.so

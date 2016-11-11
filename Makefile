@@ -5,35 +5,34 @@ PROJECT=atf
 #Please setup QMAKE enviroment variable
 #QMAKE=/home/arv/Qt/5.4/gcc/bin/qmake
 
-SOURCES= lua_interpreter.cc \
-	main.cc \
-	marshal.cc \
-	network.cc \
-	qtdynamic.cc \
-	qtlua.cc \
-	qdatetime.cc \
-	timers.cc
+SOURCES= src/lua_interpreter.cc \
+	src/main.cc \
+	src/marshal.cc \
+	src/network.cc \
+	src/qtdynamic.cc \
+	src/qtlua.cc \
+	src/qdatetime.cc \
+	src/timers.cc
 
 all: interp modules/libxml.so
 
 interp: $(PROJECT).mk $(SOURCES)
-	ln -sf `g++ -print-file-name=libgcc.a`
-	ln -sf `g++ -print-file-name=libstdc+.a`
 	make -f $<
+	rm -f moc_*.cpp
 
-modules/libxml.so: lua_xml.cc
+modules/libxml.so: src/lua_xml.cc
 	$(CXX) $(CXXFLAGS) -shared -std=c++11 $< -o modules/libxml.so -g -I/usr/include/libxml2 -llua5.2 -lxml2 -fPIC
 
 clean:
 	rm -f $(PROJECT).mk
 	rm -f *.o moc_*.cpp *.aux *.log *.so *.a
-	rm -f modules/*.so modules/*.o
+	rm -f modules/*.so modules/.obj/*.o
 	-make -C test clean
-	rm -f test/*.so* test/*.o test/Makefile 
+	rm -f test/*.so* test/.obj/*.o test/Makefile
 	rm -f test/out/*.out
 
 distclean: clean
-	rm -f	interp libqttest.so
+	rm -f	bin/interp libqttest.so
 	-make -C test distclean
 
 test/Makefile: test/test.pro check-env
@@ -44,9 +43,9 @@ libqttest.so: $(SOURCES) test/Makefile
 	ln -sf test/libqttest.so.1.0.0 libqttest.so
 
 test: run_tests.sh
-	./run_tests.sh
+	./test/run_tests.sh
 
-run_tests.sh: interp libqttest.so test/testbase.lua modules/libxml.so \
+run_tests.sh: bin/interp libqttest.so test/testbase.lua modules/libxml.so \
 	test/dynamic.lua test/connect.lua test/network.lua \
 	test/reportTest.lua test/SDLLogTest.lua
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-shutdown_time=100
+shutdown_time=30
 read pid < sdl.pid
 
 function shutdown_sdl {
@@ -13,9 +13,10 @@ function shutdown_sdl {
     return 1
 }
 
+# Abort is used for getting core dump
 function kill_sdl {
     echo "Kill SDL process : "$pid
-    kill -SIGTERM $pid
+    kill -SIGABRT $pid
 }
 
 shutdown_sdl || kill_sdl

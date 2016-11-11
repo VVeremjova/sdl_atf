@@ -209,7 +209,15 @@ function module.mt.__index:CompareType(data_elem, schemaElem, isArray, nameofPar
       local local_enum = self.schema.interface[interface_name].enum[complex_elem_name]
       if table_contains(local_enum, data_elem) then
         return true
+      else
+        -- Workaround for non-existed value in enum
+        if interface_name == "Ford Sync RAPI" then
+          local err_msg = "[WARNING]: got non-existed integer value \"".. tostring(data_elem).. "\" in enum ".. schemaElem
+          return true, err_msg
+        end
+        -- Finish workaround
       end
+
     end
     if name_of_structure~=nil then 
       return false, "Parameter ".. name_of_structure.."."..nameofParameter..": got "..elem1..", expected enum value: "..schemaElem 

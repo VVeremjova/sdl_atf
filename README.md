@@ -1,5 +1,4 @@
 # Automated Test Framework (ATF)
-Current release version: 2.2 (https://github.com/CustomSDL/sdl_atf/releases/tag/ATF2.2)
 
 ## Dependencies:
 Library            | License
@@ -18,10 +17,8 @@ Qt5.3 Test         | LGPL 2.1
 lpthread           | LGPL
 libxml2            | MIT
 
-## For ATF usage:
-```$ sudo apt-get install liblua5.2 libxml2 lua-lpeg```
-
-[Qt5](https://download.qt.io/archive/qt/5.3/5.3.1/)
+For ATF usage:
+```sudo apt-get install liblua5.2 libxml2 lua-lpeg```
 
 ## Get source code:
 ```
@@ -36,8 +33,14 @@ $ git submodule update
 
 **2** Install Qt5.3+
 
+[Download Qt5.3+](https://download.qt.io/archive/qt/5.3/5.3.1/)
+```
+sudo chmod +x some-qt-build.run
+./some-qt-build.run
+```
+
 **2** Setup QMAKE environment variable to path to qmake
-```export QMAKE=${PATH_TO_QMAKE} ```
+```export QMAKE=${PATH_TO_QMAKE} ``` 
 *You can get path to qmake this way:*
 ```
 $ sudo find / -name qmake
@@ -71,7 +74,7 @@ You can setup path to SDL via command line with ```--sdl-core``` option.
 
 **Example :**
 ```
-./start.sh --sdl-core=~/development/sdl/build/bin ./test_scripts/ActivationDuringActiveState.lua
+./start.sh --sdl-core=/home/user/development/sdl/build/bin ./test_scripts/ActivationDuringActiveState.lua
 ```
 
 Or via config file(```modules/config.lua```) with config parameter
@@ -79,7 +82,15 @@ Or via config file(```modules/config.lua```) with config parameter
 **Example :**
 *ATF config : modules/config.lua :*
 ```
-config.pathToSDL = "~/development/sdl/build/bin"
+config.pathToSDL = "home/user/development/sdl/build/bin"
+```
+
+also you can copy ```modules/config.lua``` to root and rename to ```local_config.lua```.
+```local_config.lua``` is added to ```.gitignore```
+
+Usage example:
+```
+./start.sh -clocal_config.lua ATF_script.lua 
 ```
 
 #### Connect ATF to already started SDL
@@ -112,6 +123,5 @@ ServerPort = 8087
 ; Listening port form incoming TCP mobile connection
 TCPAdapterPort = 12345
 ```
-
 ## Run tests
-``` make test ```
+``` make test```

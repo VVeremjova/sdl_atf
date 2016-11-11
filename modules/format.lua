@@ -1,11 +1,12 @@
 local module = { }
 console = require('console')
-function module.PrintCaseResult(caseName, success, errorMessage, timespan)
+local config = require('config')
+function module.PrintCaseResult(startCaseTime, caseName, success, errorMessage, timespan)
   caseName = tostring(caseName)
-  if #caseName > 35 then
-    caseName = string.sub(caseName, 1, 32) .. "..."
+  if #caseName > 85 then
+    caseName = string.sub(caseName, 1, 82) .. "..."
   else
-    caseName = caseName .. string.rep(' ', 35 - #caseName)
+    caseName = caseName .. string.rep(' ', 85 - #caseName)
   end
 
   local result
@@ -18,12 +19,27 @@ function module.PrintCaseResult(caseName, success, errorMessage, timespan)
     result = success and "[SUCCESS]" or "[FAIL]"
   end
 
-  print(string.format("%s %s (%d ms)", caseName, result, timespan))
+  if config.ShowTimeInConsole == true then
+    print(string.format("[%s] %s %s (%d ms)",startCaseTime, caseName, result, timespan))
+  else
+    print(string.format("%s %s (%d ms)", caseName, result, timespan))
+  end
   if not success and errorMessage then
     for k, v in pairs(errorMessage) do
       local errmsg = " " .. k .. ": " .. v
       if config.color then
         print(console.setattr(errmsg, "cyan", 1))
+      else
+        print(errmsg)
+      end
+    end
+  end
+  -- Print warnings
+  if success and errorMessage then
+    for k, v in pairs(errorMessage) do
+      local errmsg = " " .. k .. ": " .. v
+      if config.color then
+        print(console.setattr(errmsg, "yellow", 1))
       else
         print(errmsg)
       end

@@ -1,2 +1,2 @@
 #!/bin/sh
-./interp modules/launch.lua $@ 2> ErrorLog.txt
+./bin/interp modules/launch.lua $@ 2> ErrorLog.txt

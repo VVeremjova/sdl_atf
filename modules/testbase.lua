@@ -71,11 +71,13 @@ local mt =
 
 function control.runNextCase()
   module.ts = timestamp()
+  module.current_case_time = atf_logger.formated_time(true)
   module.current_case_index = module.current_case_index + 1
   local testcase = module.test_cases[module.current_case_index]
   if testcase then
     module.current_case_name = module.case_names[testcase]
     xmlReporter.AddCase(module.current_case_name)
+    atf_logger.LOGTestCaseStart(module.current_case_name)
     testcase(module)
   else
     if SDL.autoStarted then
@@ -126,7 +128,7 @@ local function CheckStatus()
       errorMessage[e.name .. ": " .. k] = v
     end
   end
-  fmt.PrintCaseResult(module.current_case_name, success, errorMessage, timestamp() - module.ts)
+  fmt.PrintCaseResult(module.current_case_time, module.current_case_name, success, errorMessage, timestamp() - module.ts)
   xmlReporter.CaseMessageTotal(module.current_case_name,{ ["result"] = success, ["timestamp"] = (timestamp() - module.ts)} )
   if (not success) then xmlReporter.AddMessage("ErrorMessage", {["Status"] = "FAILD"}, errorMessage ) end
   module.expectations_list:Clear()

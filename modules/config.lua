@@ -6,22 +6,35 @@ config.hmiPort = 8087
 config.mobileHost = "localhost"
 config.mobilePort = 12345
 config.heartbeatTimeout = 7000
+-- By default protocol version is 3
 config.defaultProtocolVersion = 3
 
+-- path to SDL binary
+-- Example: "/home/user/sdl_build/bin"
 config.pathToSDL = ""
+-- Example: "/home/user/sdl_panasonic/src/components/interfaces"
+config.pathToSDLInterfaces = ""
 config.SDL = "smartDeviceLinkCore"
 config.sdl_logs_host = "localhost"
 config.sdl_logs_port = 6676
 
 config.ExitOnCrash = true
 config.autorunSDL = true
+config.ShowTimeInConsole = true
 
+-- By default, report is collecting
 config.excludeReport = false
-config.storeFullATFLogs = false
-config.storeFullSDLLogs = false
+-- Create separate file with full ATF logs for all test cases.
+-- Log includes json files and service messages related to each test case
+config.storeFullATFLogs = true
+-- Store full SDLCore logs
+config.storeFullSDLLogs = true
+-- Path to collecting ATF and SDL logs
 config.reportPath = "./TestingReports"
---for store sdl log -"x" before start script and +"x" after end script execution. In milliseconds(ms).
+-- For storing sdl log -"x" before start script and +"x" after end script execution. In milliseconds(ms).
 config.x_sdllog = 100
+
+-- Basic applications. Using in Register tests
 config.application1 =
 {
   registerAppInterfaceParams =

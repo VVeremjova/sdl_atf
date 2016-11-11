@@ -1,5 +1,8 @@
 local json = require("json")
-local module = { mt = { __index = {} } }
+
+local module = { 
+  mt = { __index = {} }
+}
 
 function module.WebSocketConnection(url, port)
   local res =
@@ -23,7 +26,7 @@ local function checkSelfArg(s)
   end
 end
 function module.mt.__index:Send(text)
-  xmlReporter:LOG("HMItoSDL", text)
+  atf_logger.LOG("HMItoSDL", text)
   self.socket:write(text)
 end
 
@@ -31,7 +34,7 @@ function module.mt.__index:OnInputData(func)
   local d = qt.dynamic()
   local this = self
   function d:textMessageReceived(text)
-    xmlReporter:LOG("SDLtoHMI", text)
+    atf_logger.LOG("SDLtoHMI", text)
     local data = json.decode(text)
     --print("ws input:", text)
     func(this, data)

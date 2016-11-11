@@ -500,7 +500,7 @@ function module:initHMI_onReady()
       rows = rows or 1
     }
   end
-  local function image_field(name, width, heigth)
+  local function image_field(name, width, height)
     return
     {
       name = name,
@@ -604,10 +604,12 @@ function module:initHMI_onReady()
       hmiZoneCapabilities = "FRONT",
       softButtonCapabilities =
       {
-        shortPressAvailable = true,
-        longPressAvailable = true,
-        upDownAvailable = true,
-        imageSupported = true
+        {
+          shortPressAvailable = true,
+          longPressAvailable = true,
+          upDownAvailable = true,
+          imageSupported = true
+        }
       }
     })
 

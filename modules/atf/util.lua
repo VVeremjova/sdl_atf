@@ -1,13 +1,20 @@
 local utils = require("atf.stdlib.argument_parser")
 config = require('config')
 xmlReporter = require("reporter")
+atf_logger = require("atf_logger")
 
-local module = { }
+local module = { 
+  script_file_name = ""
+}
 local script_files = {}
 
 RequiredArgument = utils.RequiredArgument
 OptionalArgument = utils.OptionalArgument
 NoArgument = utils.NoArgument
+
+function get_script_file_name()
+  return module.script_file_name
+end
 
 function table2str(o)
   if type(o) == 'table' then
@@ -56,12 +63,59 @@ function table.removeKey(t, k)
   return a
 end
 
+local function convertMs(milliseconds)
+  local seconds = math.floor( (milliseconds / 1000) % 60)
+  local minutes = math.floor( ((milliseconds / (1000 * 60)) % 60))
+  local hours = math.floor(((milliseconds / (1000 * 60 * 60)) % 24))
+  local days = math.floor( (milliseconds / (1000 * 60 * 60 * 24)))
+  local ms = milliseconds - (days*(1000 * 60 * 60 * 24)+ hours*(1000 * 60 * 60)+minutes*(1000 * 60)+seconds*1000)
+  local converted_time = "(summary ".. tostring(milliseconds).. "ms)"
+  if ms ~= 0 then
+    converted_time = tostring(ms).."ms "..converted_time
+  end
+  if seconds ~= 0 then
+    converted_time = tostring(seconds).."s "..converted_time
+  end
+  if minutes ~= 0 then
+    converted_time = tostring(minutes).."min "..converted_time
+  end
+  if hours ~=0 then
+    converted_time = tostring(hours).."h "..converted_time
+  end
+  if days ~=0 then
+    converted_time = tostring(days).."d "..converted_time
+  end
+  return converted_time
+end
+
+function check_required_fields()
+  if (not is_file_exists(config.pathToSDL.."smartDeviceLinkCore")) and 
+     (not is_file_exists(config.pathToSDL.."/smartDeviceLinkCore")) then
+    print("ERROR: SDL is not accessible at the specified path: "..config.pathToSDL)
+    os.exit(1)
+  end
+  if config.pathToSDLInterfaces~="" and config.pathToSDLInterfaces~=nil then
+    if (not is_file_exists(config.pathToSDLInterfaces.."MOBILE_API.xml")) and 
+       (not is_file_exists(config.pathToSDLInterfaces.."/MOBILE_API.xml")) then
+      print("ERROR: XML files are not accessible at the specified path: "..config.pathToSDLInterfaces)
+      os.exit(1)
+    end
+  else 
+    print "\27[33m WARNING: Parameter pathToSDLInterfaces is not specified, default APIs are used \27[0m"
+  end
+end
+
 function print_startscript(script_name)
   print("==============================")
   print(string.format("Start '%s'",script_name))
   print("==============================")
 end
 function print_stopscript(script_name)
+
+  local count =  timestamp() - atf_logger.start_file_timestamp
+  local counttime =  convertMs(count)
+  atf_logger.LOGTestFinish(counttime)
+  print(string.format("Total executing time is %s", counttime))
   print("==============================")
   print(string.format("Finish '%s'",script_name or script_files[1]))
   print("==============================")
@@ -145,11 +199,6 @@ function module.heartbeat(str)
 end
 
 function module.sdl_core(str)
-  if (not is_file_exists(str.."smartDeviceLinkCore")) and 
-     (not is_file_exists(str.."/smartDeviceLinkCore")) then
-    error("SDL is not accessible at the specified path: "..str)
-    os.exit(1)
-  end
   config.pathToSDL = str
 end
 
@@ -185,7 +234,9 @@ function declare_short_opt(...)
   utils.declare_short_opt(...)
 end
 function script_execute(script_name)
+  check_required_fields()
+  module.script_file_name = script_name  
   xmlReporter = xmlReporter.init(tostring(script_name))
+  atf_logger = atf_logger.init_log(tostring(script_name))
   dofile(script_name)
 end
-
