@@ -3,9 +3,9 @@ local expectations = require('expectations')
 local events = require('events')
 local functionId = require('function_id')
 local json = require('json')
-local expectations = require('expectations')
 local constants = require('protocol_handler/ford_protocol_constants')
 local load_schema = require('load_schema')
+local services = require('services/control_service')
 
 local mob_schema = load_schema.mob_schema
 
@@ -149,163 +149,34 @@ function mt.__index:ExpectNotification(funcName, ...)
   self.exp_list:Add(ret)
   return ret
 end
-function mt.__index:Send(message)
-  if not message.serviceType then
-    error("MobileSession:Send: sessionId must be specified")
-  end
-  if not message.frameInfo then
-    error("MobileSession:Send: frameInfo must be specified")
-  end
-  local message_correlation_id
-  if message.rpcCorrelationId then
-    message_correlation_id = message.rpcCorrelationId 
-  else
-    self.correlationId = self.correlationId + 1
-    message_correlation_id = self.correlationId
-  end
-  self.messageId = self.messageId + 1
-  self.connection:Send(
-    {
-      {
-        version = message.version or self.version,
-        encryption = message.encryption or false,
-        frameType = message.frameType or 1,
-        serviceType = message.serviceType,
-        frameInfo = message.frameInfo,
-        sessionId = self.sessionId,
-        messageId = self.messageId,
-        rpcType = message.rpcType,
-        rpcFunctionId = message.rpcFunctionId,
-        rpcCorrelationId = message.rpcCorrelationId,
-        payload = message.payload,
-        binaryData = message.binaryData
-      }
-    })
-  if not self.cor_id_func_map[message_correlation_id] then
-    self.cor_id_func_map[message_correlation_id] = wrong_function_name
-    for fname, fid in pairs(functionId) do
-      if fid == message.rpcFunctionId then
-        self.cor_id_func_map[message_correlation_id] = fname
-        break
-      end
-    end    
-  else
-    error("MobileSession:Send: message with correlationId: "..message_correlation_id.." was sent earlier by ATF")
-  end
 
-  xmlReporter.AddMessage("mobile_connection","Send",
-    {
-      version = message.version or self.version,
-      encryption = message.encryption or false,
-      frameType = message.frameType or 1,
-      serviceType = message.serviceType,
-      frameInfo = message.frameInfo,
-      sessionId = self.sessionId,
-      messageId = self.messageId,
-      rpcType = message.rpcType,
-      rpcFunctionId = message.rpcFunctionId,
-      rpcCorrelationId = message.rpcCorrelationId,
-      payload = message.payload
-    }
-  )
-end
 function mt.__index:StartStreaming(service, filename, bandwidth)
   self.connection:StartStreaming(self.sessionId, service, filename, bandwidth)
 end
 function mt.__index:StopStreaming(filename)
   self.connection:StopStreaming(filename)
 end
+
+
+function mt.__index:Send(message)
+  self.services:Send(message)  
+end
+
 function mt.__index:SendRPC(func, arguments, fileName)
-  self.correlationId = self.correlationId + 1
-  local msg =
-  {
-    serviceType = 7,
-    frameInfo = 0,
-    rpcType = 0,
-    rpcFunctionId = functionId[func],
-    rpcCorrelationId = self.correlationId,
-    payload = json.encode(arguments)
-  }
-  if fileName then
-    local f = assert(io.open(fileName))
-    msg.binaryData = f:read("*all")
-    io.close(f)
-  end
-  self:Send(msg)
+  self.services:SendRPC(func, arguments, fileName)
   return self.correlationId
 end
+
 function mt.__index:StartService(service)
-  xmlReporter.AddMessage("StartService", service)
-  if service ~= 7 and self.sessionId == 0 then error("Session cannot be started") end
-  local startSession =
-  {
-    frameType = 0,
-    serviceType = service,
-    frameInfo = 1,
-    sessionId = self.sessionId,
-  }
-  self:Send(startSession)
-  -- prepare event to expect
-  local startserviceEvent = Event()
-  startserviceEvent.matches = function(_, data)
-    return data.frameType == 0 and
-    data.serviceType == service and
-    (service == 7 or data.sessionId == self.sessionId) and
-    (data.frameInfo == 2 or -- Start Service ACK
-      data.frameInfo == 3) -- Start Service NACK
-  end
-
-  local ret = self:ExpectEvent(startserviceEvent, "StartService ACK")
-  :ValidIf(function(s, data)
-      if data.frameInfo == 2 then
-        xmlReporter.AddMessage("StartService", "StartService ACK", "True")
-        return true
-      else return false, "StartService NACK received" end
-    end)
-  if service == 7 then
-    ret:Do(function(s, data)
-        if s.status == FAILED then return end
-        self.sessionId = data.sessionId
-        self.hashCode = data.binaryData
-      end)
-  end
-  return ret
+  return self.services:Start(service)
 end
-function mt.__index:StopService(service)
-  if self.hashCode == 0 then
-    -- StartServiceAck was not received. Unable to stop not started service
-    return nil
-  end
-  xmlReporter.AddMessage("StopService", service)
-  local stopService =
-  self:Send(
-    {
-      frameType = 0,
-      serviceType = service,
-      frameInfo = 4,
-      sessionId = self.sessionId,
-      binaryData = self.hashCode,
-    })
-  local event = Event()
-  -- prepare event to expect
-  event.matches = function(_, data)
-    return data.frameType == 0 and
-    data.serviceType == service and
-    (service == 7 or data.sessionId == self.sessionId) and
-    (data.frameInfo == 5 or -- End Service ACK
-      data.frameInfo == 6) -- End Service NACK
-  end
 
-  local ret = self:ExpectEvent(event, "EndService ACK")
-  :ValidIf(function(s, data)
-      if data.frameInfo == 5 then return true
-      else return false, "EndService NACK received" end
-    end)
-  if service == 7 then self:StopHeartbeat() end
-  return ret
+function mt.__index:StopService(service)
+  return self.services:StopService(service)
 end
 
 function mt.__index:StopHeartbeat()
+  -- self.heartbeat_monitor:StopHeartbeat()
   if self.heartbeatToSDLTimer and self.heartbeatFromSDLTimer then
     self.heartbeatEnabled = false
     self.heartbeatToSDLTimer:stop()
@@ -323,6 +194,8 @@ function mt.__index:StartHeartbeat()
   end
 end
 
+
+
 function mt.__index:SetHeartbeatTimeout(timeout)
   if self.heartbeatToSDLTimer and self.heartbeatFromSDLTimer then
     self.heartbeatToSDLTimer:setInterval(timeout)
@@ -331,7 +204,7 @@ function mt.__index:SetHeartbeatTimeout(timeout)
 end
 
 function mt.__index:Start()
-  return self:StartService(7)
+  return self.services:Start(7)
   :Do(function()
       -- Heartbeat
       if self.version > 2 then
@@ -368,7 +241,7 @@ function mt.__index:Start()
 
         function d.CloseSession()
           if self.heartbeatEnabled then
-            self:StopService(7)
+            self.services:StopService(7)
             self.test:FailTestCase("SDL didn't send anything for " .. self.heartbeatFromSDLTimer:interval()
               .. " msecs. Closing session # " .. self.sessionId)
           end
@@ -401,7 +274,7 @@ function mt.__index:Start()
 end
 
 function mt.__index:Stop()
-  self:StopService(7)
+  self.services:StopService(7)
 end
 
 function module.MobileSession(test, connection, regAppParams)
@@ -411,15 +284,19 @@ function module.MobileSession(test, connection, regAppParams)
   res.connection = connection
   res.exp_list = test.expectations_list
   res.messageId = 1
-  res.sessionId = 0
   res.correlationId = 1
   res.version = config.defaultProtocolVersion or 2
   res.hashCode = 0
+  -- 
   res.heartbeatEnabled = true
   res.sendHeartbeatToSDL = true
   res.answerHeartbeatFromSDL = true
   res.ignoreHeartBeatAck = false
+
   res.cor_id_func_map = { }
+  -- Each session should be kept in connection and called from it
+  res.sessionId = connection:AddSession(res)
+  res.services = services.Service(res)
   setmetatable(res, mt)
   return res
 end
