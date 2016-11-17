@@ -6,7 +6,7 @@ local json = require('json')
 local constants = require('protocol_handler/ford_protocol_constants')
 local load_schema = require('load_schema')
 local services = require('services/control_service')
-
+local heartbeatMonitor = require('services/heartbeat_monitor')
 local mob_schema = load_schema.mob_schema
 
 local Expectation = expectations.Expectation
@@ -176,31 +176,17 @@ function mt.__index:StopService(service)
 end
 
 function mt.__index:StopHeartbeat()
-  -- self.heartbeat_monitor:StopHeartbeat()
-  if self.heartbeatToSDLTimer and self.heartbeatFromSDLTimer then
-    self.heartbeatEnabled = false
-    self.heartbeatToSDLTimer:stop()
-    self.heartbeatFromSDLTimer:stop()
-    xmlReporter.AddMessage("StopHearbeat", "True")
-  end
+  self.heartbeat_monitor:StopHeartbeat()
 end
 
 function mt.__index:StartHeartbeat()
-  if self.heartbeatToSDLTimer and self.heartbeatFromSDLTimer then
-    self.heartbeatEnabled = true
-    self.heartbeatToSDLTimer:start(config.heartbeatTimeout)
-    self.heartbeatFromSDLTimer:start(config.heartbeatTimeout + 1000)
-    xmlReporter.AddMessage("StartHearbeat", "True", (config.heartbeatTimeout + 1000))
-  end
+  self.heartbeat_monitor:StartHeartbeat()
 end
 
 
 
 function mt.__index:SetHeartbeatTimeout(timeout)
-  if self.heartbeatToSDLTimer and self.heartbeatFromSDLTimer then
-    self.heartbeatToSDLTimer:setInterval(timeout)
-    self.heartbeatFromSDLTimer:setInterval(timeout + 1000)
-  end
+  self.heartbeat_monitor:SetHeartbeatTimeout(timeout)
 end
 
 function mt.__index:Start()
@@ -297,6 +283,7 @@ function module.MobileSession(test, connection, regAppParams)
   -- Each session should be kept in connection and called from it
   res.sessionId = connection:AddSession(res)
   res.services = services.Service(res)
+  res.heartbeat_monitor = heartbeatMonitor.HeartBeatMonitor(res)
   setmetatable(res, mt)
   return res
 end
