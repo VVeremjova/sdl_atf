@@ -4,7 +4,7 @@ local events = require('events')
 local control_services = require('services/control_service')
 local rpc_services = require('services/rpc_service')
 local heartbeatMonitor = require('services/heartbeat_monitor')
-local mobileExpectations = require('expectations/mobile_expectations')
+local mobileExpectations = require('expectations/session_expectations')
 
 local Event = events.Event
 local FAILED = expectations.FAILED
@@ -118,7 +118,7 @@ function mt.__index:Stop()
   self:StopHeartbeat() 
 end
 
-function module.MobileSessionImpl(session_id, correlation_id,cor_id_func_map, test, connection, regAppParams)
+function module.MobileSessionImpl(session_id, correlation_id, test, connection, regAppParams)
   local res = { }
   res.test = test
   res.regAppParams = regAppParams

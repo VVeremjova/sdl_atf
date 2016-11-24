@@ -8,26 +8,9 @@ local module = {
 function module.MobileConnection(connection)
   res = { }
   res.connection = connection
-
-  res.sessions = {}
   setmetatable(res, module.mt)
   return res
 end
-
-function module.mt.__index:AddSession(session)
-  local session_id = 0
-  if #self.sessions ~=0 then
-    session_id = #self.sessions+1
-  end
-  
-  self.sessions[session_id]= session
-  return session_id
-end
-
-function module.mt.__index:GetSession(id)
-  return self.sessions[id]
-end
-
 function module.mt.__index:Connect()
   self.connection:Connect()
 end

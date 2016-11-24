@@ -34,9 +34,9 @@ function mt.__index:CheckCorrelationID(message)
   if message.rpcCorrelationId then
     message_correlation_id = message.rpcCorrelationId 
   else
-  local cor_id = self.session.correlationId.get()
-  self.session.correlationId.set(cor_id+1)
-  message_correlation_id = cor_id
+    local cor_id = self.session.correlationId.get()
+    self.session.correlationId.set(cor_id+1)
+    message_correlation_id = cor_id
   end
   if not self.cor_id_func_map[message_correlation_id] then
     self.cor_id_func_map[message_correlation_id] = wrong_function_name
@@ -130,11 +130,6 @@ function mt.__index:ExpectResponse(cor_id, ...)
         local _res, _err = mob_schema:Validate(func_name, load_schema.response, data.payload)
 
         if (not _res) then return _res,_err end
-        -- Workaround for non-existed value in enum
-        if _err~=nil and err~="" then
-          return true, _err
-        end
-        -- Finish workaround
         return compareValues(arguments, data.payload, "payload")
       end)
   end

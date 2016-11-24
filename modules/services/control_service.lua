@@ -31,7 +31,7 @@ function mt.__index:Send(message)
 end
 
 function mt.__index:StartService(service)
-	xmlReporter.AddMessage("StartService", service)
+  xmlReporter.AddMessage("StartService", service)
   local startSession =
   {
     frameType = 0,
@@ -92,7 +92,7 @@ function mt.__index:StopService(service)
       else return false, "EndService NACK received" end
     end)
   if service == 7 then 
-  	self.session:StopHeartbeat() 
+    self.session:StopHeartbeat() 
   end
   return ret
 end

@@ -1,14 +1,11 @@
 local events = require('events')
 local constants = require('protocol_handler/ford_protocol_constants')
-local d = qt.dynamic()
  
  local module = {}
  local mt = { __index = { } }
- 
- 
+  
  
 function mt.__index:PreconditionForStartHeartbeat()
-  --do not use session, use control services and expectation
     local event = events.Event()
     event.matches = function(s, data)
       return data.frameType == constants.FRAME_TYPE.CONTROL_FRAME and
@@ -36,7 +33,6 @@ function mt.__index:PreconditionForStartHeartbeat()
         self.session:Send( { frameType = constants.FRAME_TYPE.CONTROL_FRAME,
             serviceType = constants.SERVICE_TYPE.CONTROL,
             frameInfo = constants.FRAME_INFO.HEARTBEAT } )
-        print(">>>>>-------")
         self.heartbeatFromSDLTimer:reset()
       end
     end
@@ -49,42 +45,41 @@ function mt.__index:PreconditionForStartHeartbeat()
       end
     end
 
-    -- self.expectations:ExpectAny()
-    -- :Pin() -- ?
-    -- :Times(AnyNumber())
-    -- :Do(function(data)
-    -- -- self.session.connection:OnInputData(function(_, msg)
-    --     if self.session.sessionId ~= data.sessionId then return end
-    --     if self.heartbeatEnabled then
-    --       print("** **")
-    --       print (data.frameType)
-    --       print(data.frameInfo)
-    --         if data.frameType == constants.FRAME_TYPE.CONTROL_FRAME and
-    --            data.frameInfo == constants.FRAME_INFO.HEARTBEAT_ACK and
-    --            self.ignoreHeartBeatAck then
-    --             return
-    --         end
-    --         self.heartbeatFromSDLTimer:reset()
-    --     end
-    --   end)
+    self.expectations:ExpectAny()
+    :Pin()
+    :Times(AnyNumber())
+    :Do(function(data)
+    -- self.session.connection:OnInputData(function(_, msg)
+        if self.session.sessionId.get() ~= data.sessionId then return end
+        if self.heartbeatEnabled then
+          print (data.frameType)
+          print(data.frameInfo)
+            if data.frameType == constants.FRAME_TYPE.CONTROL_FRAME and
+               data.frameInfo == constants.FRAME_INFO.HEARTBEAT_ACK and
+               self.ignoreHeartBeatAck then
+                return
+            end
+            self.heartbeatFromSDLTimer:reset()
+        end
+      end)
 
-          --   self.session.connection:OnInputData(function(_, msg)
-          --   if self.session.sessionId ~= msg.sessionId then return end
-          --   if self.heartbeatEnabled then
-          --       if msg.frameType == constants.FRAME_TYPE.CONTROL_FRAME and
-          --          msg.frameInfo == constants.FRAME_INFO.HEARTBEAT_ACK and
-          --          self.ignoreHeartBeatAck then
-          --           return
-          --       end
-          --       self.heartbeatFromSDLTimer:reset()
-          --   end
-          -- end)
+            self.session.connection:OnInputData(function(_, msg)
+            if self.session.sessionId.get() ~= msg.sessionId then return end
+            if self.heartbeatEnabled then
+                if msg.frameType == constants.FRAME_TYPE.CONTROL_FRAME and
+                   msg.frameInfo == constants.FRAME_INFO.HEARTBEAT_ACK and
+                   self.ignoreHeartBeatAck then
+                    return
+                end
+                self.heartbeatFromSDLTimer:reset()
+            end
+          end)
 
-    -- self.session.connection:OnMessageSent(function(sessionId)
-    --     if self.heartbeatEnabled and self.session.[sessionId == sessionId then
-    --       self.heartbeatToSDLTimer:reset()
-    --     end
-    --   end)
+    self.session.connection:OnMessageSent(function(sessionId)
+        if self.heartbeatEnabled and self.session.sessionId.get() == sessionId then
+          self.heartbeatToSDLTimer:reset()
+        end
+      end)
     qt.connect(self.heartbeatToSDLTimer, "timeout()", d, "SendHeartbeat()")
     qt.connect(self.heartbeatFromSDLTimer, "timeout()", d, "CloseSession()")
 end

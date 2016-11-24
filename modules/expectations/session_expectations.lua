@@ -9,6 +9,10 @@ local FAILED = expectations.FAILED
 local module = {}
 local mt = { __index = { } }
 
+--! @brief Expectation of specific event
+--! @param event 
+--! @param name is event name
+--! @return return expectation table
 function mt.__index:ExpectEvent(event, name)
   local ret = Expectation(name, self.session.connection)
   ret.event = event
@@ -17,7 +21,8 @@ function mt.__index:ExpectEvent(event, name)
   return ret
 end
 
-
+--! @brief Expectation of any event
+--! @return return expectation table for any unprocessed event
 function mt.__index:ExpectAny()
   local event = events.Event()
   event.level = 1
