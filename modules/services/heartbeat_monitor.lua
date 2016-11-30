@@ -18,8 +18,7 @@ function mt.__index:PreconditionForStartHeartbeat()
     :Times(AnyNumber())
     :Do(function(data)
         if self.heartbeatEnabled and self.answerHeartbeatFromSDL then
-          self.session:Send( { frameType = constants.FRAME_TYPE.CONTROL_FRAME,
-              serviceType = constants.SERVICE_TYPE.CONTROL,
+          self.control_services:Send( { serviceType = constants.SERVICE_TYPE.CONTROL,
               frameInfo = constants.FRAME_INFO.HEARTBEAT_ACK } )
         end
       end)
@@ -30,7 +29,7 @@ function mt.__index:PreconditionForStartHeartbeat()
 
     function d.SendHeartbeat()
       if self.heartbeatEnabled and self.sendHeartbeatToSDL then
-        self.session:Send( { frameType = constants.FRAME_TYPE.CONTROL_FRAME,
+        self.control_services:Send( {
             serviceType = constants.SERVICE_TYPE.CONTROL,
             frameInfo = constants.FRAME_INFO.HEARTBEAT } )
         self.heartbeatFromSDLTimer:reset()
@@ -63,17 +62,17 @@ function mt.__index:PreconditionForStartHeartbeat()
         end
       end)
 
-            self.session.connection:OnInputData(function(_, msg)
-            if self.session.sessionId.get() ~= msg.sessionId then return end
-            if self.heartbeatEnabled then
-                if msg.frameType == constants.FRAME_TYPE.CONTROL_FRAME and
-                   msg.frameInfo == constants.FRAME_INFO.HEARTBEAT_ACK and
-                   self.ignoreHeartBeatAck then
-                    return
-                end
-                self.heartbeatFromSDLTimer:reset()
-            end
-          end)
+    self.session.connection:OnInputData(function(_, msg)
+      if self.session.sessionId.get() ~= msg.sessionId then return end
+      if self.heartbeatEnabled then
+          if msg.frameType == constants.FRAME_TYPE.CONTROL_FRAME and
+             msg.frameInfo == constants.FRAME_INFO.HEARTBEAT_ACK and
+             self.ignoreHeartBeatAck then
+              return
+          end
+          self.heartbeatFromSDLTimer:reset()
+        end
+      end)
 
     self.session.connection:OnMessageSent(function(sessionId)
         if self.heartbeatEnabled and self.session.sessionId.get() == sessionId then

@@ -34,12 +34,10 @@ function mt.__index:StartService(service)
   xmlReporter.AddMessage("StartService", service)
   local startSession =
   {
-    frameType = 0,
     serviceType = service,
     frameInfo = 1,
     sessionId = self.session.sessionId.get(),
   }
-  self:Send(startSession)
   -- prepare event to expect
   local startserviceEvent = Event()
   startserviceEvent.matches = function(_, data)
@@ -49,6 +47,7 @@ function mt.__index:StartService(service)
     (data.frameInfo == 2 or -- Start Service ACK
       data.frameInfo == 3) -- Start Service NACK
   end
+  self:Send(startSession)
 
   local ret = self.session:ExpectEvent(startserviceEvent, "StartService ACK")
   :ValidIf(function(s, data)
