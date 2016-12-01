@@ -1,10 +1,10 @@
 local events = require('events')
 local constants = require('protocol_handler/ford_protocol_constants')
- 
+
  local module = {}
  local mt = { __index = { } }
-  
- 
+
+
 function mt.__index:PreconditionForStartHeartbeat()
     local event = events.Event()
     event.matches = function(s, data)
@@ -18,8 +18,7 @@ function mt.__index:PreconditionForStartHeartbeat()
     :Times(AnyNumber())
     :Do(function(data)
         if self.heartbeatEnabled and self.answerHeartbeatFromSDL then
-          self.control_services:Send( { serviceType = constants.SERVICE_TYPE.CONTROL,
-              frameInfo = constants.FRAME_INFO.HEARTBEAT_ACK } )
+          self.control_services:SendControlMessage( {frameInfo = constants.FRAME_INFO.HEARTBEAT_ACK } )
         end
       end)
 
@@ -29,9 +28,7 @@ function mt.__index:PreconditionForStartHeartbeat()
 
     function d.SendHeartbeat()
       if self.heartbeatEnabled and self.sendHeartbeatToSDL then
-        self.control_services:Send( {
-            serviceType = constants.SERVICE_TYPE.CONTROL,
-            frameInfo = constants.FRAME_INFO.HEARTBEAT } )
+        self.control_services:SendControlMessage( { frameInfo = constants.FRAME_INFO.HEARTBEAT } )
         self.heartbeatFromSDLTimer:reset()
       end
     end
@@ -40,7 +37,7 @@ function mt.__index:PreconditionForStartHeartbeat()
       if self.heartbeatEnabled then
          self.control_services:StopService(7)
          self.session.test:FailTestCase("SDL didn't send anything for " .. self.heartbeatFromSDLTimer:interval()
-          .. " msecs. Closing session # " .. self.session.sessionId)
+          .. " msecs. Closing session # " .. self.session.sessionId.get())
       end
     end
 
@@ -48,11 +45,8 @@ function mt.__index:PreconditionForStartHeartbeat()
     :Pin()
     :Times(AnyNumber())
     :Do(function(data)
-    -- self.session.connection:OnInputData(function(_, msg)
         if self.session.sessionId.get() ~= data.sessionId then return end
         if self.heartbeatEnabled then
-          print (data.frameType)
-          print(data.frameInfo)
             if data.frameType == constants.FRAME_TYPE.CONTROL_FRAME and
                data.frameInfo == constants.FRAME_INFO.HEARTBEAT_ACK and
                self.ignoreHeartBeatAck then
@@ -62,23 +56,6 @@ function mt.__index:PreconditionForStartHeartbeat()
         end
       end)
 
-    self.session.connection:OnInputData(function(_, msg)
-      if self.session.sessionId.get() ~= msg.sessionId then return end
-      if self.heartbeatEnabled then
-          if msg.frameType == constants.FRAME_TYPE.CONTROL_FRAME and
-             msg.frameInfo == constants.FRAME_INFO.HEARTBEAT_ACK and
-             self.ignoreHeartBeatAck then
-              return
-          end
-          self.heartbeatFromSDLTimer:reset()
-        end
-      end)
-
-    self.session.connection:OnMessageSent(function(sessionId)
-        if self.heartbeatEnabled and self.session.sessionId.get() == sessionId then
-          self.heartbeatToSDLTimer:reset()
-        end
-      end)
     qt.connect(self.heartbeatToSDLTimer, "timeout()", d, "SendHeartbeat()")
     qt.connect(self.heartbeatFromSDLTimer, "timeout()", d, "CloseSession()")
 end
@@ -130,5 +107,5 @@ function module.HeartBeatMonitor(session)
   return res
 end
 
- 
+
  return module

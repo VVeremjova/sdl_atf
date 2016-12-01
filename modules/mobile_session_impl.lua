@@ -38,12 +38,9 @@ function mt.__index:SendRPC(func, arguments, fileName)
   return self.rpc_services:SendRPC(func, arguments, fileName)
 end
 
-
 function mt.__index:StartService(service)
   return self.control_services:StartService(service)
 end
-
-
 
 function mt.__index:StopService(service)
   return self.control_services:StopService(service)
@@ -65,11 +62,10 @@ function mt.__index:StartRPC()
   local ret = self:StartService(7)
   ret:Do(function()
       -- Heartbeat
-      if self.version > 2 then       
-        -- self.heartbeat_monitor = heartbeatMonitor.HeartBeatMonitor(self)
+      if self.version > 2 then
         self.heartbeat_monitor:PreconditionForStartHeartbeat()
         self.heartbeat_monitor:StartHeartbeat()
-      end       
+      end
     end)
   ret:Do(function(s, data)
       if s.status == FAILED then return end
@@ -80,20 +76,21 @@ function mt.__index:StartRPC()
 end
 
 function mt.__index:StopRPC()
-  self.control_services:StopService(7)
-  self:StopHeartbeat() 
+  local ret = self.control_services:StopService(7)
+  self:StopHeartbeat()
+  return ret
 end
 
 function mt.__index:Send(message)
   if not message.serviceType then
-    error("MobileSession:Send: sessionId must be specified")
+    error("MobileSession:Send: serviceType must be specified")
   end
   if not message.frameInfo then
     error("MobileSession:Send: frameInfo must be specified")
   end
 
   self.messageId = self.messageId + 1
-  message.version = message.version or self.version  
+  message.version = message.version or self.version
   message.encryption = message.encryption or false
   message.frameType = message.frameType or 1
   message.sessionId = self.sessionId.get()
@@ -101,7 +98,7 @@ function mt.__index:Send(message)
 
 
   self.connection:Send({message})
-  xmlReporter.AddMessage("e","Send",{message})    
+  xmlReporter.AddMessage("e","Send",{message})
   return message
 end
 
@@ -114,8 +111,7 @@ function mt.__index:Start()
 end
 
 function mt.__index:Stop()
-  self.control_services:StopService(7)
-  self:StopHeartbeat() 
+  self:StopRPC()
 end
 
 function module.MobileSessionImpl(session_id, correlation_id, test, connection, regAppParams)
@@ -132,7 +128,7 @@ function module.MobileSessionImpl(session_id, correlation_id, test, connection, 
   res.sessionId = session_id
 
   res.control_services =  control_services.Service(res)
-  res.rpc_services = rpc_services.RPCService(res) 
+  res.rpc_services = rpc_services.RPCService(res)
   res.mobile_expectations = mobileExpectations.MobileExpectations(res)
   res.heartbeat_monitor = heartbeatMonitor.HeartBeatMonitor(res)
 

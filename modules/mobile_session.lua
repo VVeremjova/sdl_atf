@@ -72,6 +72,9 @@ end
 --! @param service - service type
 --! @return return expectation for EndService ACK
 function mt.__index:StopService(service)
+  if service == 7 then
+    return self.mobile_session_impl:StopRPC()
+  end
   return self.mobile_session_impl:StopService(service)
 end
 
@@ -113,7 +116,7 @@ function mt.__index:Start()
   self.mobile_session_impl:Start()
 end
 
---! @brief Start rpc service (7) and stop Heartbeat 
+--! @brief Stop rpc service (7) and stop Heartbeat 
 function mt.__index:Stop()
   self.mobile_session_impl:Stop()
 end

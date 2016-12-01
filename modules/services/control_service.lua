@@ -30,12 +30,19 @@ function mt.__index:Send(message)
   return message
 end
 
+function mt.__index:SendControlMessage(message)
+  message.frameType = constants.FRAME_TYPE.CONTROL_FRAME  
+  message.serviceType = constants.SERVICE_TYPE.CONTROL  
+  self:Send(message)
+  return message
+end
+
 function mt.__index:StartService(service)
   xmlReporter.AddMessage("StartService", service)
   local startSession =
   {
     serviceType = service,
-    frameInfo = 1,
+    frameInfo =  constants.FRAME_INFO.START_SERVICE,
     sessionId = self.session.sessionId.get(),
   }
   -- prepare event to expect
@@ -43,15 +50,15 @@ function mt.__index:StartService(service)
   startserviceEvent.matches = function(_, data)
     return data.frameType == 0 and
     data.serviceType == service and
-    (service == 7 or data.sessionId == self.session.sessionId.get()) and
-    (data.frameInfo == 2 or -- Start Service ACK
-      data.frameInfo == 3) -- Start Service NACK
+    (service == constants.SERVICE_TYPE.RPC or data.sessionId == self.session.sessionId.get()) and
+    (data.frameInfo == constants.FRAME_INFO.START_SERVICE_ACK or 
+      data.frameInfo == constants.FRAME_INFO.START_SERVICE_NACK)
   end
   self:Send(startSession)
 
   local ret = self.session:ExpectEvent(startserviceEvent, "StartService ACK")
   :ValidIf(function(s, data)
-      if data.frameInfo == 2 then
+      if data.frameInfo == constants.FRAME_INFO.START_SERVICE_ACK then
         xmlReporter.AddMessage("StartService", "StartService ACK", "True")
         return true
       else return false, "StartService NACK received" end
@@ -69,30 +76,26 @@ function mt.__index:StopService(service)
   local stopService =
   self:Send(
     {
-      frameType = 0,
       serviceType = service,
-      frameInfo = 4,
+      frameInfo = constants.FRAME_INFO.END_SERVICE,
       sessionId = self.session.sessionId.get(),
       binaryData = self.session.hashCode,
     })
   local event = Event()
   -- prepare event to expect
   event.matches = function(_, data)
-    return data.frameType == 0 and
+    return data.frameType == constants.FRAME_TYPE.CONTROL_FRAME and
     data.serviceType == service and
-    (service == 7 or data.sessionId == self.session.sessionId.get()) and
-    (data.frameInfo == 5 or -- End Service ACK
-      data.frameInfo == 6) -- End Service NACK
+    (service == constants.SERVICE_TYPE.RPC or data.sessionId == self.session.sessionId.get()) and
+    (data.frameInfo == constants.FRAME_INFO.END_SERVICE_ACK or 
+      data.frameInfo == constants.FRAME_INFO.END_SERVICE_NACK)
   end
 
   local ret = self.session:ExpectEvent(event, "EndService ACK")
   :ValidIf(function(s, data)
-      if data.frameInfo == 5 then return true
+      if data.frameInfo == constants.FRAME_INFO.END_SERVICE_ACK then return true
       else return false, "EndService NACK received" end
     end)
-  if service == 7 then 
-    self.session:StopHeartbeat() 
-  end
   return ret
 end
 
