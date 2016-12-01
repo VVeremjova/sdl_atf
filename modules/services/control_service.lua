@@ -68,10 +68,7 @@ end
 
 
 function mt.__index:StopService(service)
-  if self.session.hashCode == 0 then
-    -- StartServiceAck was not received. Unable to stop not started service
-    return nil
-  end
+  assert(self.session.hashCode ~= 0, "StartServiceAck was not received. Unable to stop not started service")
   xmlReporter.AddMessage("StopService", service)
   local stopService =
   self:Send(
