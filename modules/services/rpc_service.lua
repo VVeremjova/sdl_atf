@@ -74,6 +74,7 @@ function mt.__index:SendRPC(func, arguments, fileName)
   return self.session.correlationId.get()
 end
 
+-- TODO(VVeremjova) Refactore according APPLINK-16802
 function mt.__index:ExpectResponse(cor_id, ...)
   local temp_cor_id = cor_id
   local func_name = self.cor_id_func_map[cor_id]
@@ -139,7 +140,7 @@ function mt.__index:ExpectResponse(cor_id, ...)
   return ret
 end
 
-
+-- TODO(VVeremjova) Refactore according APPLINK-16802
 function mt.__index:ExpectNotification(funcName, ...)
   -- move to rpc service
   local event = events.Event()
