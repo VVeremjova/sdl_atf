@@ -10,7 +10,7 @@ local events = require("events")
 local expectations = require('expectations')
 local functionId = require('function_id')
 local SDL = require('SDL')
-
+local exit_codes = require('exit_codes')
 local load_schema = require('load_schema')
 
 local mob_schema = load_schema.mob_schema
@@ -209,7 +209,7 @@ function RUN_AFTER(func, timeout, funcName)
   if funcName then
     func_name_str = funcName
   end
-  xmlReporter.AddMessage(debug.getinfo(1, "n").name, func_name_str, 
+  xmlReporter.AddMessage(debug.getinfo(1, "n").name, func_name_str,
     {["functionLine"] = debug.getinfo(func, "S").linedefined, ["Timeout"] = tostring(timeout)})
   local d = qt.dynamic()
   d.timeout = function(self)
