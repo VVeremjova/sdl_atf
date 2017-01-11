@@ -114,7 +114,7 @@ function mt.__index:Stop()
   self:StopRPC()
 end
 
-function module.MobileSessionImpl(session_id, correlation_id, test, connection, regAppParams)
+function module.MobileSessionImpl(session_id, correlation_id, test, connection, sendHeartbeatToSDL, answerHeartbeatFromSDL, ignoreHeartBeatAck, regAppParams)
   local res = { }
   res.test = test
   res.regAppParams = regAppParams
@@ -130,8 +130,12 @@ function module.MobileSessionImpl(session_id, correlation_id, test, connection, 
   res.control_services =  control_services.Service(res)
   res.rpc_services = rpc_services.RPCService(res)
   res.mobile_expectations = mobileExpectations.MobileExpectations(res)
-  res.heartbeat_monitor = heartbeatMonitor.HeartBeatMonitor(res)
 
+  res.sendHeartbeatToSDL = sendHeartbeatToSDL
+  res.answerHeartbeatFromSDL = answerHeartbeatFromSDL
+  res.ignoreHeartBeatAck = ignoreHeartBeatAck
+
+  res.heartbeat_monitor = heartbeatMonitor.HeartBeatMonitor(res)
 
   setmetatable(res, mt)
   return res

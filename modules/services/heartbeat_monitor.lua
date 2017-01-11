@@ -17,7 +17,7 @@ function mt.__index:PreconditionForStartHeartbeat()
     :Pin()
     :Times(AnyNumber())
     :Do(function(data)
-        if self.heartbeatEnabled and self.answerHeartbeatFromSDL then
+        if self.heartbeatEnabled and self.AnswerHeartbeatFromSDL.get() then
           self.control_services:SendControlMessage( {frameInfo = constants.FRAME_INFO.HEARTBEAT_ACK } )
         end
       end)
@@ -25,36 +25,22 @@ function mt.__index:PreconditionForStartHeartbeat()
     local d = qt.dynamic()
     self.heartbeatToSDLTimer = timers.Timer()
     self.heartbeatFromSDLTimer = timers.Timer()
-
     function d.SendHeartbeat()
-      if self.heartbeatEnabled and self.sendHeartbeatToSDL then
+      if self.heartbeatEnabled and self.SendHeartbeatToSDL.get() then
         self.control_services:SendControlMessage( { frameInfo = constants.FRAME_INFO.HEARTBEAT } )
-        self.heartbeatFromSDLTimer:reset()
+        if not self.IgnoreHeartBeatAck.get() then
+          self.heartbeatFromSDLTimer:reset()
+        end
       end
     end
 
     function d.CloseSession()
       if self.heartbeatEnabled then
-         self.control_services:StopService(7)
-         self.session.test:FailTestCase("SDL didn't send anything for " .. self.heartbeatFromSDLTimer:interval()
-          .. " msecs. Closing session # " .. self.session.sessionId.get())
+        print("\27[31m SDL didn't send anything for " .. self.heartbeatFromSDLTimer:interval()
+          .. " msecs. Closing session # " .. self.session.sessionId.get().."\27[0m")
+        self.control_services:StopService(7)
       end
     end
-
-    self.expectations:ExpectAny()
-    :Pin()
-    :Times(AnyNumber())
-    :Do(function(data)
-        if self.session.sessionId.get() ~= data.sessionId then return end
-        if self.heartbeatEnabled then
-            if data.frameType == constants.FRAME_TYPE.CONTROL_FRAME and
-               data.frameInfo == constants.FRAME_INFO.HEARTBEAT_ACK and
-               self.ignoreHeartBeatAck then
-                return
-            end
-            self.heartbeatFromSDLTimer:reset()
-        end
-      end)
 
     qt.connect(self.heartbeatToSDLTimer, "timeout()", d, "SendHeartbeat()")
     qt.connect(self.heartbeatFromSDLTimer, "timeout()", d, "CloseSession()")
@@ -71,11 +57,15 @@ end
 
 
 function mt.__index:StopHeartbeat()
-  if self.heartbeatToSDLTimer and self.heartbeatFromSDLTimer then
+  if self.heartbeatEnabled then
     self.heartbeatEnabled = false
-    self.heartbeatToSDLTimer:stop()
-    self.heartbeatFromSDLTimer:stop()
-    xmlReporter.AddMessage("StopHearbeat", "True")
+    if self.heartbeatToSDLTimer then
+      self.heartbeatToSDLTimer:stop()
+    end
+    if self.heartbeatFromSDLTimer then
+      self.heartbeatFromSDLTimer:stop()
+    end
+  xmlReporter.AddMessage("StopHearbeat", "True")
   end
 end
 
@@ -86,10 +76,10 @@ function mt.__index:SetHeartbeatTimeout(timeout)
   end
 end
 
+
 function module.HeartBeatMonitor(session)
   local res = { }
   res.session = session
-
   res.sessionId = session.sessionId
   res.control_services = session.control_services
   res.expectations = session.mobile_expectations
@@ -98,11 +88,22 @@ function module.HeartBeatMonitor(session)
   res.heartbeatToSDLTimer = timers.Timer()
   res.heartbeatFromSDLTimer = timers.Timer()
 
-  res.heartbeatEnabled = true
-  res.sendHeartbeatToSDL = true
-  res.answerHeartbeatFromSDL = true
-  res.ignoreHeartBeatAck = false
+  res.SendHeartbeatToSDL = {}
+  function res.SendHeartbeatToSDL.get()
+    return session.sendHeartbeatToSDL.get()
+  end
 
+  res.AnswerHeartbeatFromSDL = {}
+  function res.AnswerHeartbeatFromSDL.get()
+    return session.answerHeartbeatFromSDL.get()
+  end
+
+  res.IgnoreHeartBeatAck = {}
+  function res.IgnoreHeartBeatAck.get()
+    return session.ignoreHeartBeatAck.get()
+  end
+
+  res.heartbeatEnabled = true
   setmetatable(res, mt)
   return res
 end

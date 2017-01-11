@@ -5,7 +5,7 @@ local module = {}
 local mt = { __index = { } }
 
 --! @brief Expectation of specific event
---! @param event 
+--! @param event
 --! @param name is event name
 --! @return return expectation table
 function mt.__index:ExpectEvent(event, name)
@@ -26,30 +26,30 @@ function mt.__index:ExpectResponse(cor_id, ...)
 end
 
 --! @brief Expectation of notification with specific funcName
---! @param funcName - name of notification 
+--! @param funcName - name of notification
 --! @return return expectation table for notification
 function mt.__index:ExpectNotification(funcName, ...)
    return self.mobile_session_impl:ExpectNotification(funcName, ...)
 end
 
 
---! @brief Start video streaming 
---! @param service - serviceType 
---! @param filename - file for streaming 
+--! @brief Start video streaming
+--! @param service - serviceType
+--! @param filename - file for streaming
 --! @param bandwidth - optional parameter (default value is 30 * 1024)
 function mt.__index:StartStreaming(service, filename, bandwidth)
   self.mobile_session_impl:StartStreaming(self.SessionId.get(), service, filename, bandwidth)
 end
 
---! @brief Stop video streaming 
+--! @brief Stop video streaming
 --! @param filename -  streaming file
 function mt.__index:StopStreaming(filename)
   self.mobile_session_impl:StopStreaming(filename)
 end
 
---! @brief Send RPC 
---! @param func - RPC name  
---! @param arguments - arguments for RPC function 
+--! @brief Send RPC
+--! @param func - RPC name
+--! @param arguments - arguments for RPC function
 --! @param fileName - path to file with binary data
 function mt.__index:SendRPC(func, arguments, fileName)
   return self.mobile_session_impl:SendRPC(func, arguments, fileName)
@@ -103,51 +103,67 @@ end
 
 function mt.__index:Send(message)
   -- Workaround
-    if message.serviceType == 7 then 
+    if message.serviceType == 7 then
       self.mobile_session_impl.rpc_services:CheckCorrelationID(message)
     end
-  -- 
+  --
   self.mobile_session_impl:Send(message)
   return message
 end
 
---! @brief Start rpc service (7) and send RegisterAppInterface rpc 
+--! @brief Start rpc service (7) and send RegisterAppInterface rpc
 function mt.__index:Start()
   self.mobile_session_impl:Start()
 end
 
---! @brief Stop rpc service (7) and stop Heartbeat 
+--! @brief Stop rpc service (7) and stop Heartbeat
 function mt.__index:Stop()
   self.mobile_session_impl:Stop()
 end
-
 
 function module.MobileSession(test, connection, regAppParams)
   local res = { }
   res.correlationId = 1
   res.sessionId = 0
 
-
   res.SessionId = {}
-  function res.SessionId.set(val) 
-    res.sessionId = val 
+  function res.SessionId.set(val)
+    res.sessionId = val
   end
-  function res.SessionId.get() 
+  function res.SessionId.get()
     return res.sessionId
   end
 
-
   res.CorrelationId = {}
-  function res.CorrelationId.set(val) 
-    res.correlationId = val 
+  function res.CorrelationId.set(val)
+    res.correlationId = val
   end
-  function res.CorrelationId.get() 
-    return  res.correlationId 
+  function res.CorrelationId.get()
+    return  res.correlationId
   end
 
+  -- heartbeat parameters
+  res.sendHeartbeatToSDL = true
+  res.answerHeartbeatFromSDL = true
+  res.ignoreSDLHeartBeatACK = false
+
+  res.SendHeartbeatToSDL = {}
+  function res.SendHeartbeatToSDL.get()
+    return res.sendHeartbeatToSDL
+  end
+
+  res.AnswerHeartbeatFromSDL = {}
+  function res.AnswerHeartbeatFromSDL.get()
+    return res.answerHeartbeatFromSDL
+  end
+
+  res.IgnoreSDLHeartBeatAck = {}
+  function res.IgnoreSDLHeartBeatAck.get()
+    return res.ignoreSDLHeartBeatACK
+  end
 
   res.mobile_session_impl = mobile_session_impl.MobileSessionImpl(
-  res.SessionId, res.CorrelationId, test, connection, regAppParams)
+  res.SessionId, res.CorrelationId, test, connection, res.SendHeartbeatToSDL, res.AnswerHeartbeatFromSDL, res.IgnoreSDLHeartBeatAck, regAppParams )
 
   setmetatable(res, mt)
   return res
