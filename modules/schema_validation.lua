@@ -173,7 +173,7 @@ function module.mt.__index:CompareType(data_elem, schemaElem, isArray, nameofPar
   if (isArray=='true') then
     return self:CheckTypesInArray(data_elem, schemaElem, nameofParameter, name_of_structure)
   end
-  if (schemaElem == 'Integer' or schemaElem == 'Float' or schemaElem == 'Double') then
+  if (schemaElem == 'Integer' or schemaElem == 'Float' or schemaElem == 'Double' or schemaElem == 'Long') then
     if elem1 == 'number'  then
       return CheckValue( data_elem, schemaElem, nameofParameter )
     end
