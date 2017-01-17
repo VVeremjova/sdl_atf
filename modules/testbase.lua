@@ -88,7 +88,7 @@ function control.runNextCase()
     xmlReporter:finalize()
     if total_testset_result == false then
       quit(exit_codes.failed)
-    else 
+    else
       quit()
     end
   end
@@ -142,9 +142,9 @@ end
 
 local function FailTestCase(self, cause)
   module.expectations_list:Clear()
-  local exp = expectations.Expectation(cause)
+  local exp = expectations.Expectation("AutoFail")
   exp.status = FAILED
-  exp.errorMessage = { ["AutoFail"] = cause }
+  table.insert(exp.errorMessage, cause)
   module.expectations_list:Add(exp)
   CheckStatus()
 end
