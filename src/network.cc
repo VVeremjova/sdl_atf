@@ -6,7 +6,11 @@
 #include <QTcpServer>
 #include <QWebSocket>
 #include <QEventLoop>
+#include <QString>
 #include <unistd.h>
+#include <errno.h>
+#include <cstring>
+#include <cstdio>
 #line 22 "network.nw"
 // TcpClient functions/*{{{*/
 int network_tcp_client(lua_State *L) {/*{{{*/
@@ -29,6 +33,17 @@ QTcpSocket *tcpSocket =
 
   tcpSocket->connectToHost(ip, port);
 
+  QTime timer;
+  timer.start();
+  while (!tcpSocket->waitForConnected()) {
+    tcpSocket->connectToHost(ip, port);
+    // Check elapsed time
+    const int time_waiting_ms = 1000;
+    if (timer.elapsed() > time_waiting_ms){
+      fprintf(stderr, "%s\n%s\n", "Error: Connection not established", strerror(errno));
+      return 1;
+    }
+  }
   return 0;
 }/*}}}*/
 int tcp_socket_read(lua_State *L) {/*{{{*/
