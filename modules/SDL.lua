@@ -23,12 +23,11 @@ function CopyInterface()
     local mobile_api = config.pathToSDLInterfaces .. '/MOBILE_API.xml'
     local hmi_api = config.pathToSDLInterfaces .. '/HMI_API.xml'
     CopyFile(mobile_api, 'data/MOBILE_API.xml')
-    CopyFile(hmi_api, 'data/HMI_API.xml') 
+    CopyFile(hmi_api, 'data/HMI_API.xml')
   end
 end
 
-function SDL:StartSDL(pathToSDL, smartDeviceLinkCore, ExitOnCrash)    
-  sdl_logger.init_log(get_script_file_name())
+function SDL:StartSDL(pathToSDL, smartDeviceLinkCore, ExitOnCrash)
   if ExitOnCrash then
     self.exitOnCrash = ExitOnCrash
   end
@@ -43,6 +42,9 @@ function SDL:StartSDL(pathToSDL, smartDeviceLinkCore, ExitOnCrash)
   if status == self.STOPPED  or status == self.CRASH then
     CopyInterface()
     local result = os.execute ('./tools/StartSDL.sh ' .. pathToSDL .. ' ' .. smartDeviceLinkCore)
+    if config.storeFullSDLLogs == true then
+      sdl_logger.init_log(get_script_file_name())
+    end
     if result then
       local msg = "SDL started"
       xmlReporter.AddMessage("StartSDL", {["message"] = msg})
@@ -55,7 +57,7 @@ function SDL:StartSDL(pathToSDL, smartDeviceLinkCore, ExitOnCrash)
     end
   end
   local msg = "SDL had already started from ATF"
-  xmlReporter.AddMessage("StartSDL", {["message"] = msg})  
+  xmlReporter.AddMessage("StartSDL", {["message"] = msg})
   print(console.setattr(msg, "cyan", 1))
   return nil, msg
 end
@@ -64,9 +66,11 @@ function SDL:StopSDL()
   self.autoStarted = false
   local status = self:CheckStatusSDL()
   if status == self.RUNNING then
-    local result = os.execute ('./tools/StopSDL.sh')    
+    local result = os.execute ('./tools/StopSDL.sh')
     if result then
-      sdl_logger.close()
+      if config.storeFullSDLLogs == true then
+        sdl_logger.close()
+      end
       return true
     end
   else
