@@ -111,7 +111,9 @@ local function CheckStatus()
   local success = true
   local errorMessage = {}
   if SDL:CheckStatusSDL() == CRASH then
-    success = false
+    if SDL.exitOnCrash == true then
+      success = false
+    end
     print(console.setattr("SDL has unexpectedly crashed or stop responding!", "cyan", 1))
     critical(SDL.exitOnCrash)
     SDL:DeleteFile()
@@ -135,7 +137,9 @@ local function CheckStatus()
   module.current_case_name = nil
   if module.current_case_mandatory and not success then
     SDL:StopSDL()
-    quit(exit_codes.aborted)
+    if SDL.exitOnCrash == true then
+      quit(exit_codes.aborted)
+    end
   end
   control:next()
 end

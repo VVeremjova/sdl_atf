@@ -28,7 +28,7 @@ function CopyInterface()
 end
 
 function SDL:StartSDL(pathToSDL, smartDeviceLinkCore, ExitOnCrash)
-  if ExitOnCrash then
+  if ExitOnCrash ~= nil then
     self.exitOnCrash = ExitOnCrash
   end
   local status = self:CheckStatusSDL()
