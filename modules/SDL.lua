@@ -10,6 +10,8 @@ SDL.STOPPED = 0
 SDL.RUNNING = 1
 SDL.CRASH = -1
 
+SDL.is_SDL_stopped = true
+
 function sleep(n)
   os.execute("sleep " .. tonumber(n))
 end
@@ -80,10 +82,48 @@ end
 function SDL:CheckStatusSDL()
   local testFile = os.execute ('test -e sdl.pid')
   if testFile then
-    local testCatFile = os.execute ('test -e /proc/$(cat sdl.pid)')
+     local testCatFile = os.execute ('test -e /proc/$(cat sdl.pid)')
     if not testCatFile then
-      return self.CRASH
+      print("AAAAAAA")
+      -- return self.CRASH
     end
+
+    -- local result = os.execute ('./tools/SDLExitStatus.sh ')
+    -- if result~=0  and result ~=true then
+    --   print ("result".. tostring(result))
+    -- end
+    -- local testCatFile = os.execute ('test -e /proc/$(cat sdl.pid)')
+    local handle = io.popen ('ps aux |grep smartDevice')
+    local current_processes = handle:read("*a")
+    handle:close()
+    local is_process_exist = string.find(current_processes, "./smartDeviceLinkCore")
+    if not is_process_exist then
+      -- if config.ExpectSDLStopped == true
+      --   return self.STOPPED
+      -- else
+      --   return self.CRASH
+      -- end
+
+      -- if exist dump file then SDL crashed
+      if is_file_exists(config.pathToSDL.."/core") then
+        if self.is_SDL_stopped ~= true then
+          local msg = "SDL had crashed"
+          xmlReporter.AddMessage("SDL Error", {["message"] = msg})
+          print(console.setattr(msg, "cyan", 1))
+          self.is_SDL_stopped = true
+        end
+        return self.CRASH
+      end
+      if self.is_SDL_stopped ~= true then
+        local msg = "SDL had stopped"
+         xmlReporter.AddMessage("SDL WARN", {["message"] = msg})
+        print(console.setattr(msg, "cyan", 1))
+        self.is_SDL_stopped = true
+      end
+       return self.STOPPED
+    end
+
+    -- local result = os.execute ('./tools/SDLExitStatus.sh ')
     return self.RUNNING
   end
   return self.STOPPED

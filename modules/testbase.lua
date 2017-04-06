@@ -30,6 +30,9 @@ local CRASH = SDL.CRASH
 
 local total_testset_result = true
 
+
+SDL.is_SDL_stopped = true
+
 -- Support table for controlling Test Cases execution status
 -- @table control
 local control = qt.dynamic()
@@ -133,6 +136,9 @@ local function CheckStatus()
   -- Check the test status
   local success = true
   local errorMessage = {}
+  if SDL:CheckStatusSDL() == RUNNING then
+    SDL.is_SDL_stopped = false
+  end
   if SDL:CheckStatusSDL() == CRASH then
     if SDL.exitOnCrash == true then
       success = false
@@ -199,7 +205,7 @@ local function main()
   timeoutTimer = timers.Timer()
   qt.connect(timeoutTimer, "timeout()", control, "checkstatus()")
 
-  timeoutTimer:start(400)
+  timeoutTimer:start(100)
   control:next()
 end
 
